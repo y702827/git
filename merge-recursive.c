@@ -2041,6 +2041,7 @@ void init_merge_options(struct merge_options *o)
 	o->merge_rename_limit = -1;
 	o->renormalize = 0;
 	o->detect_rename = 1;
+	o->index_only = 0;
 	merge_recursive_config(o);
 	if (getenv("GIT_MERGE_VERBOSITY"))
 		o->verbosity =

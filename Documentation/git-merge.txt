@@ -86,6 +86,20 @@ invocations. The automated message can include the branch description.
 	Allow the rerere mechanism to update the index with the
 	result of auto-conflict resolution if possible.
 
+--index-only::
+	Perform merge on index only, leaving working tree alone.  Most
+	users do NOT want to use this flag, as it will leave the
+	working tree and the index completely out of sync, which is
+	very likely to confuse users and prevent a subsequent 'git
+	merge --abort' from working.  It is intended for script
+	writers to have a way to easily check whether a merge would
+	succeed and which files would conflict, typically from bare
+	clones.
++
+Note that files other than the index in the git-dir may also be
+modified when using this flag (e.g. MERGE_HEAD, MERGE_MSG, MERGE_RR,
+HEAD, whatever HEAD points at, and new objects under objects/).
+
 --abort::
 	Abort the current conflict resolution process, and
 	try to reconstruct the pre-merge state.

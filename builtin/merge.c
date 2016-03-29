@@ -63,6 +63,7 @@ static char *branch_mergeoptions;
 static int option_renormalize;
 static int verbosity;
 static int allow_rerere_auto;
+static int index_only = 0;
 static int abort_current_merge;
 static int show_progress = -1;
 static int default_to_upstream = 1;
@@ -221,6 +222,8 @@ static struct option builtin_merge_options[] = {
 	OPT__VERBOSITY(&verbosity),
 	OPT_BOOL(0, "abort", &abort_current_merge,
 		N_("abort the current in-progress merge")),
+	OPT_BOOL(0, "index-only", &index_only,
+		N_("perform merge on index only, leaving working tree alone")),
 	OPT_SET_INT(0, "progress", &show_progress, N_("force progress reporting"), 1),
 	{ OPTION_STRING, 'S', "gpg-sign", &sign_commit, N_("key-id"),
 	  N_("GPG sign commit"), PARSE_OPT_OPTARG, NULL, (intptr_t) "" },
@@ -663,6 +666,7 @@ static int try_merge_strategy(const char *strategy, struct commit_list *common,
 			o.subtree_shift = "";
 
 		o.renormalize = option_renormalize;
+		o.index_only = index_only;
 		o.show_rename_progress =
 			show_progress == -1 ? isatty(2) : show_progress;
 
@@ -1193,6 +1197,9 @@ int cmd_merge(int argc, const char **argv, const char *prefix)
 		parse_branch_merge_options(branch_mergeoptions);
 	argc = parse_options(argc, argv, prefix, builtin_merge_options,
 			builtin_merge_usage, 0);
+	if (!index_only)
+		setup_work_tree();
+
 	if (shortlog_len < 0)
 		shortlog_len = (merge_log_config > 0) ? merge_log_config : 0;
 

@@ -427,7 +427,7 @@ static struct cmd_struct commands[] = {
 	{ "ls-tree", cmd_ls_tree, RUN_SETUP },
 	{ "mailinfo", cmd_mailinfo },
 	{ "mailsplit", cmd_mailsplit },
-	{ "merge", cmd_merge, RUN_SETUP | NEED_WORK_TREE },
+	{ "merge", cmd_merge, RUN_SETUP },
 	{ "merge-base", cmd_merge_base, RUN_SETUP },
 	{ "merge-file", cmd_merge_file, RUN_SETUP_GENTLY },
 	{ "merge-index", cmd_merge_index, RUN_SETUP },

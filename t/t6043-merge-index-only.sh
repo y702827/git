@@ -374,7 +374,7 @@ test_expect_failure '--index-only octopus, bare' '
 	)
 '
 
-test_expect_failure '--index-only ours, non-bare' '
+test_expect_success '--index-only ours, non-bare' '
 	git reset --hard &&
 	git checkout B^0 &&
 
@@ -387,7 +387,7 @@ test_expect_failure '--index-only ours, non-bare' '
 	test ! -f c
 '
 
-test_expect_failure '--index-only ours, bare' '
+test_expect_success '--index-only ours, bare' '
 	rm -rf bare.clone &&
 	git clone --bare . bare.clone &&
 	(cd bare.clone &&
