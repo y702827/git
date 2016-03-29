@@ -406,10 +406,11 @@ static void record_df_conflict_files(struct merge_options *o,
 	int i;
 
 	/*
-	 * If we're merging merge-bases, we don't want to bother with
-	 * any working directory changes.
+	 * If we're doing an index-only merge, we don't need to check for
+	 * which files to remove from the working copy to make room for
+	 * paths below directories of D/F conflicts; we can just exit early.
 	 */
-	if (o->call_depth)
+	if (o->index_only)
 		return;
 
 	/* Ensure D/F conflicts are adjacent in the entries list. */
@@ -581,7 +582,7 @@ static int remove_file(struct merge_options *o, int clean,
 		       const char *path, int no_wd)
 {
 	int update_cache = o->call_depth || clean;
-	int update_working_directory = !o->call_depth && !no_wd;
+	int update_working_directory = !o->index_only && !no_wd;
 
 	if (update_cache) {
 		if (remove_file_from_cache(path))
@@ -622,7 +623,7 @@ static char *unique_path(struct merge_options *o, const char *path, const char *
 	base_len = newpath.len;
 	while (string_list_has_string(&o->current_file_set, newpath.buf) ||
 	       string_list_has_string(&o->current_directory_set, newpath.buf) ||
-	       (!o->call_depth && file_exists(newpath.buf))) {
+	       (!o->index_only && file_exists(newpath.buf))) {
 		strbuf_setlen(&newpath, base_len);
 		strbuf_addf(&newpath, "_%d", suffix++);
 	}
@@ -742,7 +743,7 @@ static void update_file_flags(struct merge_options *o,
 			      int update_cache,
 			      int update_wd)
 {
-	if (o->call_depth)
+	if (o->index_only)
 		update_wd = 0;
 
 	if (update_wd) {
@@ -813,7 +814,7 @@ static void update_file(struct merge_options *o,
 			unsigned mode,
 			const char *path)
 {
-	update_file_flags(o, sha, mode, path, o->call_depth || clean, !o->call_depth);
+	update_file_flags(o, sha, mode, path, o->call_depth || clean, !o->index_only);
 }
 
 /* Low level file merging, update and removal */
@@ -1017,7 +1018,7 @@ static void handle_change_delete(struct merge_options *o,
 				 const char *change, const char *change_past)
 {
 	char *renamed = NULL;
-	if (dir_in_way(path, !o->call_depth)) {
+	if (dir_in_way(path, !o->index_only)) {
 		renamed = unique_path(o, path, a_sha ? o->branch1 : o->branch2);
 	}
 
@@ -1145,7 +1146,7 @@ static void handle_file(struct merge_options *o,
 		remove_file(o, 0, rename->path, 0);
 		dst_name = unique_path(o, rename->path, cur_branch);
 	} else {
-		if (dir_in_way(rename->path, !o->call_depth)) {
+		if (dir_in_way(rename->path, !o->index_only)) {
 			dst_name = unique_path(o, rename->path, cur_branch);
 			output(o, 1, _("%s is a directory in %s adding as %s instead"),
 			       rename->path, other_branch, dst_name);
@@ -1234,8 +1235,8 @@ static void conflict_rename_rename_2to1(struct merge_options *o,
 	       a->path, c1->path, ci->branch1,
 	       b->path, c2->path, ci->branch2);
 
-	remove_file(o, 1, a->path, o->call_depth || would_lose_untracked(a->path));
-	remove_file(o, 1, b->path, o->call_depth || would_lose_untracked(b->path));
+	remove_file(o, 1, a->path, o->index_only || would_lose_untracked(a->path));
+	remove_file(o, 1, b->path, o->index_only || would_lose_untracked(b->path));
 
 	mfi_c1 = merge_file_special_markers(o, a, c1, &ci->ren1_other,
 					    o->branch1, c1->path,
@@ -1619,7 +1620,7 @@ static int merge_content(struct merge_options *o,
 			 o->branch2 == rename_conflict_info->branch1) ?
 			pair1->two->path : pair1->one->path;
 
-		if (dir_in_way(path, !o->call_depth))
+		if (dir_in_way(path, !o->index_only))
 			df_conflict_remains = 1;
 	}
 	mfi = merge_file_special_markers(o, &one, &a, &b,
@@ -1639,7 +1640,7 @@ static int merge_content(struct merge_options *o,
 		path_renamed_outside_HEAD = !path2 || !strcmp(path, path2);
 		if (!path_renamed_outside_HEAD) {
 			add_cacheinfo(mfi.mode, mfi.sha, path,
-				      0, (!o->call_depth), 0);
+				      0, (!o->index_only), 0);
 			return mfi.clean;
 		}
 	} else
@@ -1767,7 +1768,7 @@ static int process_entry(struct merge_options *o,
 			sha = b_sha;
 			conf = _("directory/file");
 		}
-		if (dir_in_way(path, !o->call_depth)) {
+		if (dir_in_way(path, !o->index_only)) {
 			char *new_path = unique_path(o, path, add_branch);
 			clean_merge = 0;
 			output(o, 1, _("CONFLICT (%s): There is a directory with name %s in %s. "
@@ -1819,7 +1820,7 @@ int merge_trees(struct merge_options *o,
 		return 1;
 	}
 
-	code = git_merge_trees(o->call_depth, common, head, merge);
+	code = git_merge_trees(o->index_only, common, head, merge);
 
 	if (code != 0) {
 		if (show(o, 4) || o->call_depth)
@@ -1899,6 +1900,7 @@ int merge_recursive(struct merge_options *o,
 	struct commit *merged_common_ancestors;
 	struct tree *mrtree = mrtree;
 	int clean;
+	int prev_index_only_setting;
 
 	if (show(o, 4)) {
 		output(o, 4, _("Merging:"));
@@ -1929,9 +1931,12 @@ int merge_recursive(struct merge_options *o,
 		merged_common_ancestors = make_virtual_commit(tree, "ancestor");
 	}
 
+	prev_index_only_setting = o->index_only;
+
 	for (iter = ca; iter; iter = iter->next) {
 		const char *saved_b1, *saved_b2;
 		o->call_depth++;
+		o->index_only = 1;
 		/*
 		 * When the merge fails, the result contains files
 		 * with conflict markers. The cleanness flag is
@@ -1953,6 +1958,8 @@ int merge_recursive(struct merge_options *o,
 		if (!merged_common_ancestors)
 			die(_("merge returned no commit"));
 	}
+
+	o->index_only = prev_index_only_setting;
 
 	discard_cache();
 	if (!o->call_depth)

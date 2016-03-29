@@ -28,7 +28,7 @@ test_expect_success 'setup rename/modify merge' '
 	git commit -m C
 '
 
-test_expect_failure '--index-only with rename/modify works in non-bare-clone' '
+test_expect_success '--index-only with rename/modify works in non-bare-clone' '
 	git checkout B^0 &&
 
 	git merge --index-only -s recursive C^0 &&
@@ -43,7 +43,7 @@ test_expect_failure '--index-only with rename/modify works in non-bare-clone' '
 	test $(git rev-parse B:a) = $(git rev-parse :b)
 '
 
-test_expect_failure '--index-only with rename/modify works in a bare clone' '
+test_expect_success '--index-only with rename/modify works in a bare clone' '
 	git clone --bare . bare.clone &&
 	(cd bare.clone &&
 
@@ -136,7 +136,7 @@ test_expect_success 'setup single-file criss-cross resolvable with recursive str
 	rm -f answer
 '
 
-test_expect_failure 'recursive --index-only in non-bare repo' '
+test_expect_success 'recursive --index-only in non-bare repo' '
 	git reset --hard &&
 	git checkout L2^0 &&
 
@@ -150,7 +150,7 @@ test_expect_failure 'recursive --index-only in non-bare repo' '
 	test $(git rev-parse L2:contents) = $(git hash-object contents)
 '
 
-test_expect_failure 'recursive --index-only in bare repo' '
+test_expect_success 'recursive --index-only in bare repo' '
 	git clone --bare . bare.clone &&
 	(cd bare.clone &&
 
@@ -406,7 +406,7 @@ test_expect_success '--index-only ours, bare' '
 	)
 '
 
-test_expect_failure '--index-only subtree, non-bare' '
+test_expect_success '--index-only subtree, non-bare' '
 	git reset --hard &&
 	git checkout B^0 &&
 
@@ -420,7 +420,7 @@ test_expect_failure '--index-only subtree, non-bare' '
 	test ! -f e
 '
 
-test_expect_failure '--index-only subtree, bare' '
+test_expect_success '--index-only subtree, bare' '
 	rm -rf bare.clone &&
 	git clone --bare . bare.clone &&
 	(cd bare.clone &&
