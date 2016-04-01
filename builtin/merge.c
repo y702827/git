@@ -606,7 +606,8 @@ static int read_tree_trivial(unsigned char *common, unsigned char *head,
 	opts.head_idx = 2;
 	opts.src_index = &the_index;
 	opts.dst_index = &the_index;
-	opts.update = 1;
+	opts.update = !index_only;
+	opts.index_only = index_only;
 	opts.verbose_update = 1;
 	opts.trivial_merges_only = 1;
 	opts.merge = 1;

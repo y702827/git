@@ -265,7 +265,7 @@ test_expect_failure '--index-only ff update, non-bare with uncommitted changes' 
 	test ! -d subdir
 '
 
-test_expect_failure '--index-only w/ resolve, trivial, non-bare' '
+test_expect_success '--index-only w/ resolve, trivial, non-bare' '
 	git clean -fdx &&
 	git reset --hard &&
 	git checkout B^0 &&
