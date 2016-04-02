@@ -222,7 +222,7 @@ static int fast_forward_to(const unsigned char *to, const unsigned char *from,
 	struct strbuf err = STRBUF_INIT;
 
 	read_cache();
-	if (checkout_fast_forward(from, to, 1))
+	if (checkout_fast_forward(from, to, 0, 1))
 		exit(128); /* the callee should have complained already */
 
 	strbuf_addf(&sb, "%s: fast-forward", action_name(opts));

@@ -46,6 +46,7 @@ int try_merge_command(const char *strategy, size_t xopts_nr,
 
 int checkout_fast_forward(const unsigned char *head,
 			  const unsigned char *remote,
+			  int index_only,
 			  int overwrite_ignore)
 {
 	struct tree *trees[MAX_UNPACK_TREES];
@@ -72,7 +73,8 @@ int checkout_fast_forward(const unsigned char *head,
 	opts.head_idx = 1;
 	opts.src_index = &the_index;
 	opts.dst_index = &the_index;
-	opts.update = 1;
+	opts.update = !index_only;
+	opts.index_only = index_only;
 	opts.verbose_update = 1;
 	opts.merge = 1;
 	opts.fn = twoway_merge;

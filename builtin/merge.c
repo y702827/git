@@ -1443,6 +1443,7 @@ int cmd_merge(int argc, const char **argv, const char *prefix)
 
 		if (checkout_fast_forward(head_commit->object.oid.hash,
 					  commit->object.oid.hash,
+					  index_only,
 					  overwrite_ignore)) {
 			ret = 1;
 			goto done;

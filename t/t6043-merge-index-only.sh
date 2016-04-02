@@ -224,7 +224,7 @@ test_expect_success 'setup simple merges' '
 	test_tick && git commit -m E
 '
 
-test_expect_failure '--index-only ff update, non-bare' '
+test_expect_success '--index-only ff update, non-bare' '
 	git reset --hard &&
 	git checkout A^0 &&
 
@@ -235,7 +235,7 @@ test_expect_failure '--index-only ff update, non-bare' '
 	test ! -d subdir
 '
 
-test_expect_failure '--index-only ff update, bare' '
+test_expect_success '--index-only ff update, bare' '
 	git clone --bare . bare.clone &&
 	(cd bare.clone &&
 
@@ -250,7 +250,7 @@ test_expect_failure '--index-only ff update, bare' '
 	)
 '
 
-test_expect_failure '--index-only ff update, non-bare with uncommitted changes' '
+test_expect_success '--index-only ff update, non-bare with uncommitted changes' '
 	git clean -fdx &&
 	git reset --hard &&
 	git checkout A^0 &&

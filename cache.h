@@ -1785,6 +1785,7 @@ int try_merge_command(const char *strategy, size_t xopts_nr,
 		const char *head_arg, struct commit_list *remotes);
 int checkout_fast_forward(const unsigned char *from,
 			  const unsigned char *to,
+			  int index_only,
 			  int overwrite_ignore);
 
 
