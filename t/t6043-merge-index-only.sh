@@ -406,4 +406,38 @@ test_expect_failure '--index-only ours, bare' '
 	)
 '
 
+test_expect_failure '--index-only subtree, non-bare' '
+	git reset --hard &&
+	git checkout B^0 &&
+
+	git merge --index-only -s subtree E^0 &&
+
+	test "$(git rev-list --count HEAD)" -eq 4 &&
+	test $(git rev-parse :a) = $(git rev-parse B:a) &&
+	test $(git rev-parse :b) = $(git rev-parse B:b) &&
+	test $(git rev-parse :e) = $(git rev-parse E:subdir/e) &&
+	test ! -d subdir &&
+	test ! -f e
+'
+
+test_expect_failure '--index-only subtree, bare' '
+	rm -rf bare.clone &&
+	git clone --bare . bare.clone &&
+	(cd bare.clone &&
+
+	 git update-ref --no-deref HEAD B &&
+	 git read-tree HEAD &&
+
+	 git merge --index-only -s subtree E^0 &&
+
+	 test "$(git rev-list --count HEAD)" -eq 4 &&
+	 test $(git rev-parse :a) = $(git rev-parse B:a) &&
+	 test $(git rev-parse :b) = $(git rev-parse B:b) &&
+	 test $(git rev-parse :e) = $(git rev-parse E:subdir/e) &&
+	 test ! -d subdir &&
+	 test ! -f a &&
+	 test ! -f e
+	)
+'
+
 test_done
