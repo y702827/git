@@ -167,14 +167,22 @@ test_expect_failure 'recursive --index-only in bare repo' '
 	)
 '
 
-# Testcase for a simple ff update
+# Testcase for some simple merges
 #   A
-#   o-----o E
-#
+#   o-----o B
+#    \
+#     \---o C
+#      \
+#       \-o D
+#        \
+#         o E
 #   Commit A: some file a
+#   Commit B: adds file b, modifies end of a
+#   Commit C: adds file c
+#   Commit D: adds file d, modifies beginning of a
 #   Commit E: renames a->subdir/a, adds subdir/e
 
-test_expect_success 'setup simple ff update' '
+test_expect_success 'setup simple merges' '
 	git reset --hard &&
 	git rm -rf . &&
 	git clean -fdqx &&
@@ -186,7 +194,27 @@ test_expect_success 'setup simple ff update' '
 	test_tick && git commit -m A &&
 
 	git branch A &&
+	git branch B &&
+	git branch C &&
+	git branch D &&
 	git branch E &&
+
+	git checkout B &&
+	echo b >b &&
+	echo 11 >>a &&
+	git add a b &&
+	test_tick && git commit -m B &&
+
+	git checkout C &&
+	echo c >c &&
+	git add c &&
+	test_tick && git commit -m C &&
+
+	git checkout D &&
+	seq 2 10 >a &&
+	echo d >d &&
+	git add a d &&
+	test_tick && git commit -m D &&
 
 	git checkout E &&
 	mkdir subdir &&
@@ -235,6 +263,74 @@ test_expect_failure '--index-only ff update, non-bare with uncommitted changes' 
 	test "$(git diff --name-only --cached E)" = "random_file" &&
 	test $(git hash-object a) = $(git rev-parse A:a) &&
 	test ! -d subdir
+'
+
+test_expect_failure '--index-only w/ resolve, trivial, non-bare' '
+	git clean -fdx &&
+	git reset --hard &&
+	git checkout B^0 &&
+
+	git merge --index-only -s resolve C^0 | grep Wonderful &&
+
+	test "$(git rev-list --count HEAD)" -eq 4 &&
+	test $(git rev-parse :a) = $(git rev-parse B:a) &&
+	test $(git rev-parse :b) = $(git rev-parse B:b) &&
+	test $(git rev-parse :c) = $(git rev-parse C:c) &&
+	test ! -f c
+'
+
+test_expect_failure '--index-only w/ resolve, trivial, bare' '
+	rm -rf bare.clone &&
+	git clone --bare . bare.clone &&
+	(cd bare.clone &&
+
+	 git update-ref --no-deref HEAD B &&
+	 git read-tree HEAD &&
+
+	 git merge --index-only -s resolve C^0 | grep Wonderful &&
+
+	 test "$(git rev-list --count HEAD)" -eq 4 &&
+	 test $(git rev-parse :a) = $(git rev-parse B:a) &&
+	 test $(git rev-parse :b) = $(git rev-parse B:b) &&
+	 test $(git rev-parse :c) = $(git rev-parse C:c) &&
+	 test ! -f a &&
+	 test ! -f b &&
+	 test ! -f c
+	)
+'
+
+test_expect_failure '--index-only w/ resolve, non-trivial, non-bare' '
+	git reset --hard &&
+	git checkout B^0 &&
+
+	git merge --index-only -s resolve D^0 &&
+
+	test "$(git rev-list --count HEAD)" -eq 4 &&
+	test $(git rev-parse :a) != $(git rev-parse B:a) &&
+	test $(git rev-parse :a) != $(git rev-parse D:a) &&
+	test $(git rev-parse :b) = $(git rev-parse B:b) &&
+	test $(git rev-parse :d) = $(git rev-parse D:d) &&
+	test $(git hash-object a) = $(git rev-parse B:a) &&
+	test ! -f d
+'
+
+test_expect_failure '--index-only w/ resolve, non-trivial, bare' '
+	rm -rf bare.clone &&
+	git clone --bare . bare.clone &&
+	(cd bare.clone &&
+
+	 git update-ref --no-deref HEAD B &&
+	 git read-tree HEAD &&
+
+	 git merge --index-only -s resolve D^0 &&
+
+	 test "$(git rev-list --count HEAD)" -eq 4 &&
+	 test $(git rev-parse :a) != $(git rev-parse B:a) &&
+	 test $(git rev-parse :a) != $(git rev-parse D:a) &&
+	 test $(git rev-parse :b) = $(git rev-parse B:b) &&
+	 test $(git rev-parse :d) = $(git rev-parse D:d) &&
+	 test ! -f a
+	)
 '
 
 test_done
