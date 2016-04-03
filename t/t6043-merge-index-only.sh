@@ -333,4 +333,45 @@ test_expect_failure '--index-only w/ resolve, non-trivial, bare' '
 	)
 '
 
+test_expect_failure '--index-only octopus, non-bare' '
+	git reset --hard &&
+	git checkout B^0 &&
+
+	git merge --index-only -s octopus C^0 D^0 &&
+
+	test "$(git rev-list --count HEAD)" -eq 5 &&
+	test $(git rev-parse :a) != $(git rev-parse B:a) &&
+	test $(git rev-parse :a) != $(git rev-parse C:a) &&
+	test $(git rev-parse :a) != $(git rev-parse D:a) &&
+	test $(git rev-parse :b) = $(git rev-parse B:b) &&
+	test $(git rev-parse :c) = $(git rev-parse C:c) &&
+	test $(git rev-parse :d) = $(git rev-parse D:d) &&
+	test $(git hash-object a) = $(git rev-parse B:a) &&
+	test ! -f c &&
+	test ! -f d
+'
+
+test_expect_failure '--index-only octopus, bare' '
+	rm -rf bare.clone &&
+	git clone --bare . bare.clone &&
+	(cd bare.clone &&
+
+	 git update-ref --no-deref HEAD B &&
+	 git read-tree HEAD &&
+
+	 git merge --index-only -s octopus C^0 D^0 &&
+
+	 test "$(git rev-list --count HEAD)" -eq 5 &&
+	 test $(git rev-parse :a) != $(git rev-parse B:a) &&
+	 test $(git rev-parse :a) != $(git rev-parse C:a) &&
+	 test $(git rev-parse :a) != $(git rev-parse D:a) &&
+	 test $(git rev-parse :b) = $(git rev-parse B:b) &&
+	 test $(git rev-parse :c) = $(git rev-parse C:c) &&
+	 test $(git rev-parse :d) = $(git rev-parse D:d) &&
+	 test ! -f a &&
+	 test ! -f c &&
+	 test ! -f d
+	)
+'
+
 test_done
