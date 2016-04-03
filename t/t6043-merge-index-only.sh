@@ -167,4 +167,74 @@ test_expect_failure 'recursive --index-only in bare repo' '
 	)
 '
 
+# Testcase for a simple ff update
+#   A
+#   o-----o E
+#
+#   Commit A: some file a
+#   Commit E: renames a->subdir/a, adds subdir/e
+
+test_expect_success 'setup simple ff update' '
+	git reset --hard &&
+	git rm -rf . &&
+	git clean -fdqx &&
+	rm -rf .git &&
+	git init &&
+
+	seq 1 10 >a &&
+	git add a &&
+	test_tick && git commit -m A &&
+
+	git branch A &&
+	git branch E &&
+
+	git checkout E &&
+	mkdir subdir &&
+	git mv a subdir/a &&
+	echo e >subdir/e &&
+	git add subdir &&
+	test_tick && git commit -m E
+'
+
+test_expect_failure '--index-only ff update, non-bare' '
+	git reset --hard &&
+	git checkout A^0 &&
+
+	git merge --index-only --ff-only E^0 &&
+
+	git diff --staged --exit-code E &&
+	test $(git hash-object a) = $(git rev-parse A:a) &&
+	test ! -d subdir
+'
+
+test_expect_failure '--index-only ff update, bare' '
+	git clone --bare . bare.clone &&
+	(cd bare.clone &&
+
+	 git update-ref --no-deref HEAD A &&
+	 git read-tree HEAD &&
+
+	 git merge --index-only --ff-only E^0 &&
+
+	 git diff --staged --exit-code E &&
+	 test ! -f a &&
+	 test ! -d subdir
+	)
+'
+
+test_expect_failure '--index-only ff update, non-bare with uncommitted changes' '
+	git clean -fdx &&
+	git reset --hard &&
+	git checkout A^0 &&
+
+	touch random_file && git add random_file &&
+
+	git merge --index-only --ff-only E^0 &&
+
+	test_must_fail git rev-parse HEAD:random_file &&
+	test "$(git diff --name-only --cached E)" = "random_file" &&
+	test $(git hash-object a) = $(git rev-parse A:a) &&
+	test ! -d subdir
+'
+
 test_done
