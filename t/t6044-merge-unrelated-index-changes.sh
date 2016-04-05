@@ -105,43 +105,34 @@ test_expect_success 'recursive' '
 	test_must_fail git merge -s recursive C^0
 '
 
-test_expect_failure 'octopus, unrelated file touched' '
+test_expect_success 'octopus, unrelated file touched' '
 	git reset --hard &&
 	git checkout B^0 &&
 
 	touch random_file && git add random_file &&
 
 	echo "I think the next line should fail, but maybe it was intended..." &&
-	test_might_fail git merge C^0 D^0 &&
-
-	echo "No matter what, random_file should NOT be part of HEAD" &&
-	test_must_fail git rev-parse HEAD:random_file
+	test_must_fail git merge C^0 D^0
 '
 
-test_expect_failure 'octopus, related file removed' '
+test_expect_success 'octopus, related file removed' '
 	git reset --hard &&
 	git checkout B^0 &&
 
 	git rm b &&
 
 	echo "I think the next line should fail, but maybe it was intended..." &&
-	test_might_fail git merge C^0 D^0 &&
-
-	echo "No matter what, b should still be in HEAD" &&
-	git cat-file -p HEAD:b | grep b$
+	test_must_fail git merge C^0 D^0
 '
 
-test_expect_failure 'octopus, related file modified' '
+test_expect_success 'octopus, related file modified' '
 	git reset --hard &&
 	git checkout B^0 &&
 
 	echo 12 >>a && git add a &&
 
 	echo "I think the next line should fail, but maybe it was intended..." &&
-	test_might_fail git merge C^0 D^0 &&
-
-	echo "No matter what, 12 should NOT be in the copy of a from HEAD" &&
-	git cat-file -p HEAD:a | test_must_fail grep 12
+	test_must_fail git merge C^0 D^0
 '
 
 test_expect_success 'ours' '
