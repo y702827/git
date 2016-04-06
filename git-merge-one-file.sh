@@ -18,16 +18,25 @@
 
 USAGE='<orig blob> <our blob> <their blob> <path>'
 USAGE="$USAGE <orig mode> <our mode> <their mode>"
-LONG_USAGE="usage: git merge-one-file $USAGE
+LONG_USAGE="usage: git merge-one-file $USAGE [--index-only]
 
 Blob ids and modes should be empty for missing files."
+
+update_worktree=t
+expected_argcount=7
+if test "$8" = "--index-only"; then
+	update_worktree=
+	expected_argcount=8
+fi
 
 SUBDIRECTORY_OK=Yes
 . git-sh-setup
 cd_to_toplevel
-require_work_tree
+if test -n "$update_worktree"; then
+	require_work_tree
+fi
 
-if test $# != 7
+if test $# != $expected_argcount
 then
 	echo "$LONG_USAGE"
 	exit 1
@@ -59,8 +68,10 @@ case "${1:-.}${2:-.}${3:-.}" in
 	fi
 	if test -f "$4"
 	then
-		rm -f -- "$4" &&
-		rmdir -p "$(expr "z$4" : 'z\(.*\)/')" 2>/dev/null || :
+		if test -n "$update_worktree"; then
+			rm -f -- "$4" &&
+			rmdir -p "$(expr "z$4" : 'z\(.*\)/')" 2>/dev/null || :
+		fi
 	fi &&
 		exec git update-index --remove -- "$4"
 	;;
@@ -80,8 +91,11 @@ case "${1:-.}${2:-.}${3:-.}" in
 		echo "ERROR: untracked $4 is overwritten by the merge." >&2
 		exit 1
 	fi
-	git update-index --add --cacheinfo "$7" "$3" "$4" &&
+	git update-index --add --cacheinfo "$7" "$3" "$4"
+	if test -n "$update_worktree"; then
 		exec git checkout-index -u -f -- "$4"
+	fi
+	exit 0
 	;;
 
 #
@@ -95,8 +109,11 @@ case "${1:-.}${2:-.}${3:-.}" in
 		exit 1
 	fi
 	echo "Adding $4"
-	git update-index --add --cacheinfo "$6" "$2" "$4" &&
+	git update-index --add --cacheinfo "$6" "$2" "$4"
+	if test -n "$update_worktree"; then
 		exec git checkout-index -u -f -- "$4"
+	fi
+	exit 0
 	;;
 
 #
@@ -139,7 +156,11 @@ case "${1:-.}${2:-.}${3:-.}" in
 
 	# Create the working tree file, using "our tree" version from the
 	# index, and then store the result of the merge.
-	git checkout-index -f --stage=2 -- "$4" && cat "$src1" >"$4" || exit 1
+	if test -n "$update_worktree"; then
+		git checkout-index -f --stage=2 -- "$4" && cat "$src1" >"$4" || exit 1
+	else
+		sha1=$(git hash-object -w -- "$src1")
+	fi
 	rm -f -- "$orig" "$src1" "$src2"
 
 	if test "$6" != "$7"
@@ -157,7 +178,12 @@ case "${1:-.}${2:-.}${3:-.}" in
 		echo "ERROR: $msg in $4" >&2
 		exit 1
 	fi
-	exec git update-index -- "$4"
+	if test -n "$update_worktree"; then
+		exec git update-index -- "$4"
+	else
+		printf "$6 $sha1\t$4" | git update-index --index-info
+		exit $?
+	fi
 	;;
 
 *)
