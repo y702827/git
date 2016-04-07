@@ -690,7 +690,7 @@ static int try_merge_strategy(const char *strategy, struct commit_list *common,
 		rollback_lock_file(&lock);
 		return clean ? 0 : 1;
 	} else {
-		return try_merge_command(strategy, xopts_nr, xopts,
+		return try_merge_command(strategy, index_only, xopts_nr, xopts,
 						common, head_arg, remoteheads);
 	}
 }

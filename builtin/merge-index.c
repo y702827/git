@@ -4,14 +4,17 @@
 static const char *pgm;
 static int one_shot, quiet;
 static int err;
+static int index_only;
 
 static int merge_entry(int pos, const char *path)
 {
 	int found;
-	const char *arguments[] = { pgm, "", "", "", path, "", "", "", NULL };
+	const char *arguments[] = { pgm, "", "", "", path, "", "", "", "--index-only", NULL };
 	char hexbuf[4][GIT_SHA1_HEXSZ + 1];
 	char ownbuf[4][60];
 
+	if (!index_only)
+		arguments[8] = NULL;
 	if (pos >= active_nr)
 		die("git merge-index: %s not in the cache", path);
 	found = 0;
@@ -94,6 +97,10 @@ int cmd_merge_index(int argc, const char **argv, const char *prefix)
 		if (!force_file && *arg == '-') {
 			if (!strcmp(arg, "--")) {
 				force_file = 1;
+				continue;
+			}
+			if (!strcmp(arg, "--index-only")) {
+				index_only = 1;
 				continue;
 			}
 			if (!strcmp(arg, "-a")) {

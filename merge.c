@@ -15,7 +15,7 @@ static const char *merge_argument(struct commit *commit)
 		return EMPTY_TREE_SHA1_HEX;
 }
 
-int try_merge_command(const char *strategy, size_t xopts_nr,
+int try_merge_command(const char *strategy, int index_only, size_t xopts_nr,
 		      const char **xopts, struct commit_list *common,
 		      const char *head_arg, struct commit_list *remotes)
 {
@@ -24,6 +24,8 @@ int try_merge_command(const char *strategy, size_t xopts_nr,
 	struct commit_list *j;
 
 	argv_array_pushf(&args, "merge-%s", strategy);
+	if (index_only)
+		argv_array_pushf(&args, "--index-only");
 	for (i = 0; i < xopts_nr; i++)
 		argv_array_pushf(&args, "--%s", xopts[i]);
 	for (j = common; j; j = j->next)
