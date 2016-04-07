@@ -13,6 +13,14 @@ die () {
     exit 1
 }
 
+read_tree_update="-u"
+index_only=
+if test "$1" = "--index-only"; then
+	read_tree_update="-i"
+	index_only="--index-only"
+	shift
+fi
+
 # The first parameters up to -- are merge bases; the rest are heads.
 bases= head= remotes= sep_seen=
 for arg
@@ -89,7 +97,7 @@ do
 		# We still need to count this as part of the parent set.
 
 		echo "Fast-forwarding to: $pretty_name"
-		git read-tree -u -m $head $SHA1 || exit
+		git read-tree $read_tree_update -m $head $SHA1 || exit
 		MRC=$SHA1 MRT=$(git write-tree)
 		continue
 	fi
@@ -97,12 +105,12 @@ do
 	NON_FF_MERGE=1
 
 	echo "Trying simple merge with $pretty_name"
-	git read-tree -u -m --aggressive  $common $MRT $SHA1 || exit 2
+	git read-tree $read_tree_update -m --aggressive  $common $MRT $SHA1 || exit 2
 	next=$(git write-tree 2>/dev/null)
 	if test $? -ne 0
 	then
 		echo "Simple merge did not work, trying automatic merge."
-		git-merge-index -o git-merge-one-file -a ||
+		git-merge-index -o git-merge-one-file $index_only -a ||
 		OCTOPUS_FAILURE=1
 		next=$(git write-tree 2>/dev/null)
 	fi
