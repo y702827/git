@@ -299,7 +299,7 @@ test_expect_failure '--index-only w/ resolve, trivial, bare' '
 	)
 '
 
-test_expect_failure '--index-only w/ resolve, non-trivial, non-bare' '
+test_expect_success '--index-only w/ resolve, non-trivial, non-bare' '
 	git reset --hard &&
 	git checkout B^0 &&
 
@@ -314,7 +314,7 @@ test_expect_failure '--index-only w/ resolve, non-trivial, non-bare' '
 	test ! -f d
 '
 
-test_expect_failure '--index-only w/ resolve, non-trivial, bare' '
+test_expect_success '--index-only w/ resolve, non-trivial, bare' '
 	rm -rf bare.clone &&
 	git clone --bare . bare.clone &&
 	(cd bare.clone &&

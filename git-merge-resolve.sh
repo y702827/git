@@ -5,6 +5,14 @@
 #
 # Resolve two trees, using enhanced multi-base read-tree.
 
+read_tree_update="-u"
+index_only=
+if test "$1" = "--index-only"; then
+	read_tree_update="-i"
+	index_only="--index-only"
+	shift
+fi
+
 # The first parameters up to -- are merge bases; the rest are heads.
 bases= head= remotes= sep_seen=
 for arg
@@ -38,14 +46,14 @@ then
 fi
 
 git update-index -q --refresh
-git read-tree -u -m --aggressive $bases $head $remotes || exit 2
+git read-tree $read_tree_update -m --aggressive $bases $head $remotes || exit 2
 echo "Trying simple merge."
 if result_tree=$(git write-tree 2>/dev/null)
 then
 	exit 0
 else
 	echo "Simple merge failed, trying Automatic merge."
-	if git-merge-index -o git-merge-one-file -a
+	if git-merge-index -o git-merge-one-file $index_only -a
 	then
 		exit 0
 	else
