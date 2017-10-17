@@ -5,6 +5,7 @@
 #include "diff.h"
 #include "diffcore.h"
 #include "hashmap.h"
+#include "levenshtein.h"
 #include "progress.h"
 
 /* Table of rename/copy destinations */
@@ -249,6 +250,56 @@ static int score_compare(const void *a_, const void *b_)
 	return b->score - a->score;
 }
 
+const char *file_basename(const char* path)
+{
+	const char *dirsep = strrchr(path, '/');
+	return dirsep ? dirsep + 1 : path;
+}
+
+static const char *dst_basename;
+/*
+ * We sort renames by similarity to dst_basename.  We sort first by extension,
+ * if any, and then by levenshtein distance (and using alphabetical order of
+ * basename of the two candidates as a tie-breaker).
+ */
+
+static int basename_compare(const void *a_, const void *b_)
+{
+	struct diff_rename_src * const * _a = a_, * const * _b = b_;
+	const char *a = (*_a)->p->one->path;
+	const char *b = (*_b)->p->one->path;
+
+	const char *a_basename = file_basename(a);
+	const char *b_basename = file_basename(b);
+
+	const char *dst_ext = strrchr(dst_basename, '.');
+
+	int a_dist, b_dist, diff;
+
+	/* Compare extensions first */
+	if (dst_ext) {
+		const char *a_ext = strrchr(a_basename, '.');
+		const char *b_ext = strrchr(b_basename, '.');
+
+		unsigned a_matches = (a_ext && !strcmp(a_ext, dst_ext));
+		unsigned b_matches = (b_ext && !strcmp(b_ext, dst_ext));
+
+		if (a_matches && !b_matches)
+			return -1;
+		else if (b_matches && !a_matches)
+			return 1;
+	}
+
+	/*
+	 * Compare levenshtein distance of basenames, breaking ties by
+	 * alphabetical order of a_basename and b_basename.
+	 */
+	a_dist = levenshtein(a_basename, dst_basename, 1, 1, 1, 1);
+	b_dist = levenshtein(b_basename, dst_basename, 1, 1, 1, 1);
+	diff = a_dist - b_dist;
+	return diff ? diff : strcmp(a_basename, b_basename);
+}
+
 struct file_similarity {
 	struct hashmap_entry entry;
 	int index;
@@ -474,6 +525,8 @@ static int handle_rename_ignores(struct diff_options *options)
 	return ignored;
 }
 
+#define MIN_EARLY_SEARCH_SCORE DEFAULT_RENAME_SCORE
+
 void diffcore_rename(struct diff_options *options)
 {
 	int detect_rename = options->detect_rename;
@@ -481,6 +534,7 @@ void diffcore_rename(struct diff_options *options)
 	struct diff_queue_struct *q = &diff_queued_diff;
 	struct diff_queue_struct outq;
 	struct diff_score *mx;
+	struct diff_rename_src **sorted_rename_src;
 	int i, j, rename_count, skip_unmodified = 0;
 	int num_create, dst_cnt, num_src, ignore_count;
 	struct progress *progress = NULL;
@@ -579,6 +633,9 @@ void diffcore_rename(struct diff_options *options)
 				num_create * num_src);
 	}
 
+	sorted_rename_src = xcalloc(rename_src_nr, sizeof(**sorted_rename_src));
+	for (j = 0; j < rename_src_nr; j++)
+		sorted_rename_src[j] = &rename_src[j];
 	mx = xcalloc(st_mult(NUM_CANDIDATE_PER_DST, num_create), sizeof(*mx));
 	for (dst_cnt = i = 0; i < rename_dst_nr; i++) {
 		struct diff_filespec *two = rename_dst[i].two;
@@ -591,30 +648,48 @@ void diffcore_rename(struct diff_options *options)
 		for (j = 0; j < NUM_CANDIDATE_PER_DST; j++)
 			m[j].dst = -1;
 
-		for (j = 0; j < rename_src_nr; j++) {
-			struct diff_filespec *one = rename_src[j].p->one;
-			struct diff_score this_src;
+		dst_basename = file_basename(two->path);
+		QSORT(sorted_rename_src, rename_src_nr, basename_compare);
 
-			if (rename_src[j].p->one->rename_used &&
+		for (j = 0; j < rename_src_nr; j++) {
+			struct diff_filespec *one = sorted_rename_src[j]->p->one;
+			struct diff_score this_src;
+			int k;
+
+			if (one->rename_used &&
 			    detect_rename != DIFF_DETECT_COPY)
 				continue;
 
 			if (skip_unmodified &&
-			    diff_unmodified_pair(rename_src[j].p))
+			    diff_unmodified_pair(sorted_rename_src[j]->p))
 				continue;
 
 			this_src.score = estimate_similarity(one, two,
 							     minimum_score);
 			this_src.name_score = basename_same(one, two);
 			this_src.dst = i;
-			this_src.src = j;
-			record_if_better(m, &this_src);
+			this_src.src = (sorted_rename_src[j] - rename_src);
+			assert(sorted_rename_src[j] == &rename_src[this_src.src]);
+
 			/*
 			 * Once we run estimate_similarity,
 			 * We do not need the text anymore.
 			 */
 			diff_free_filespec_blob(one);
 			diff_free_filespec_blob(two);
+
+			/* See if we should record this as a rename */
+			if (this_src.score > MIN_EARLY_SEARCH_SCORE &&
+			    !one->rename_used &&
+			    detect_rename != DIFF_DETECT_COPY) {
+				for (k = 0; k < NUM_CANDIDATE_PER_DST; k++)
+					m[k].dst = -1;
+				record_rename_pair(this_src.dst, this_src.src,
+						   this_src.score);
+				break;
+			}
+
+			record_if_better(m, &this_src);
 		}
 		dst_cnt++;
 		display_progress(progress, dst_cnt*num_src);
