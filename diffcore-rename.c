@@ -641,8 +641,10 @@ void diffcore_rename(struct diff_options *options)
 		struct diff_filespec *two = rename_dst[i].two;
 		struct diff_score *m;
 
-		if (rename_dst[i].pair)
+		if (rename_dst[i].pair) {
+			printf("Skipping %s (exact match)\n", two->path);
 			continue; /* dealt with exact match already. */
+		}
 
 		m = &mx[dst_cnt * NUM_CANDIDATE_PER_DST];
 		for (j = 0; j < NUM_CANDIDATE_PER_DST; j++)
@@ -651,14 +653,25 @@ void diffcore_rename(struct diff_options *options)
 		dst_basename = file_basename(two->path);
 		QSORT(sorted_rename_src, rename_src_nr, basename_compare);
 
+		/* DEBUGGING */
+		printf("Comparing to %s:\n", two->path);
+#if 0
+		for (j = 0; j < rename_src_nr; j++) {
+			printf("  %s\n", sorted_rename_src[j]->p->one->path);
+		}
+		printf("  Comparison info:\n");
+#endif
+
 		for (j = 0; j < rename_src_nr; j++) {
 			struct diff_filespec *one = sorted_rename_src[j]->p->one;
 			struct diff_score this_src;
 			int k;
 
 			if (one->rename_used &&
-			    detect_rename != DIFF_DETECT_COPY)
+			    detect_rename != DIFF_DETECT_COPY) {
+				printf("  Skipping against %s, it was used\n", sorted_rename_src[j]->p->one->path);
 				continue;
+			}
 
 			if (skip_unmodified &&
 			    diff_unmodified_pair(sorted_rename_src[j]->p))
@@ -670,6 +683,7 @@ void diffcore_rename(struct diff_options *options)
 			this_src.dst = i;
 			this_src.src = (sorted_rename_src[j] - rename_src);
 			assert(sorted_rename_src[j] == &rename_src[this_src.src]);
+			//printf("  Against %s, score=%d, src=%d\n", sorted_rename_src[j]->p->one->path, this_src.score, this_src.src);
 
 			/*
 			 * Once we run estimate_similarity,
@@ -682,6 +696,7 @@ void diffcore_rename(struct diff_options *options)
 			if (this_src.score > MIN_EARLY_SEARCH_SCORE &&
 			    !one->rename_used &&
 			    detect_rename != DIFF_DETECT_COPY) {
+				printf("  Recording pair: %s & %s (score=%d, indicies=(%d,%d))\n", two->path, one->path, this_src.score, this_src.dst, this_src.src);
 				for (k = 0; k < NUM_CANDIDATE_PER_DST; k++)
 					m[k].dst = -1;
 				record_rename_pair(this_src.dst, this_src.src,
