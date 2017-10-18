@@ -388,22 +388,28 @@ static struct stage_data *insert_stage_data(const char *path,
 static struct string_list *get_unmerged(void)
 {
 	struct string_list *unmerged = xcalloc(1, sizeof(struct string_list));
+	struct string_list_item *item;
+	const char *last = NULL;
 	int i;
 
 	unmerged->strdup_strings = 1;
 
 	for (i = 0; i < active_nr; i++) {
-		struct string_list_item *item;
 		struct stage_data *e;
 		const struct cache_entry *ce = active_cache[i];
 		if (!ce_stage(ce))
 			continue;
 
-		item = string_list_lookup(unmerged, ce->name);
-		if (!item) {
-			item = string_list_insert(unmerged, ce->name);
+		if (last == NULL || strcmp(last, ce->name)) {
+			/*
+			 * active_cache is in sorted order, so we can just call
+			 * string_list_append instead of string_list_insert and
+			 * still end up with a sorted list.
+			 */
+			item = string_list_append(unmerged, ce->name);
 			item->util = xcalloc(1, sizeof(struct stage_data));
 		}
+		last = ce->name;
 		e = item->util;
 		e->stages[ce_stage(ce)].mode = ce->ce_mode;
 		oidcpy(&e->stages[ce_stage(ce)].oid, &ce->oid);
