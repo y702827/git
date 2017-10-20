@@ -196,6 +196,9 @@ struct diff_options {
 	} color_moved;
 	#define COLOR_MOVED_DEFAULT COLOR_MOVED_ZEBRA
 	#define COLOR_MOVED_MIN_ALNUM_COUNT 20
+
+	/* Paths we should ignore for rename purposes */
+	struct string_list *ignore_for_renames;
 };
 
 void diff_emit_submodule_del(struct diff_options *o, const char *line);

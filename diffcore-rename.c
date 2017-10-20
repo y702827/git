@@ -440,6 +440,40 @@ static int find_renames(struct diff_score *mx, int dst_cnt, int minimum_score, i
 	return count;
 }
 
+static int handle_rename_ignores(struct diff_options *options)
+{
+	int detect_rename = options->detect_rename;
+	struct string_list *ignores = options->ignore_for_renames;
+	int ignored = 0;
+	int i, j;
+
+	/* rename_ignores onlhy relevant when we're not detecting copies */
+	if (ignores == NULL || detect_rename == DIFF_DETECT_COPY)
+		return 0;
+
+	for (i = 0, j = 0; i < ignores->nr && j < rename_src_nr;) {
+		struct diff_filespec *one = rename_src[j].p->one;
+		int cmp;
+
+		if (one->rename_used) {
+			j++;
+			continue;
+		}
+
+		cmp = strcmp(ignores->items[i].string, one->path);
+		if (cmp < 0)
+			i++;
+		else if (cmp > 0)
+			j++;
+		else {
+			one->rename_used++;
+			ignored++;
+		}
+	}
+
+	return ignored;
+}
+
 void diffcore_rename(struct diff_options *options)
 {
 	int detect_rename = options->detect_rename;
@@ -448,7 +482,7 @@ void diffcore_rename(struct diff_options *options)
 	struct diff_queue_struct outq;
 	struct diff_score *mx;
 	int i, j, rename_count, skip_unmodified = 0;
-	int num_create, dst_cnt, num_src;
+	int num_create, dst_cnt, num_src, ignore_count;
 	struct progress *progress = NULL;
 
 	if (!minimum_score)
@@ -510,12 +544,19 @@ void diffcore_rename(struct diff_options *options)
 		goto cleanup;
 
 	/*
+	 * Mark source files as used if they are found in the
+	 * ignore_for_renames list.
+	 */
+	ignore_count = handle_rename_ignores(options);
+
+	/*
 	 * Calculate how many renames are left (but all the source
 	 * files still remain as options for rename/copies!)
 	 */
 	num_create = (rename_dst_nr - rename_count);
 	num_src = (detect_rename == DIFF_DETECT_COPY ?
 		   rename_src_nr : rename_src_nr - rename_count);
+	num_src -= ignore_count;
 
 	/* All done? */
 	if (!num_create)

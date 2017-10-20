@@ -424,6 +424,34 @@ static struct string_list *get_unmerged(void)
 	return unmerged;
 }
 
+static struct string_list *get_rename_ignore(struct string_list *unmerged)
+{
+	/*
+	 * Since we don't do rename break detection, if a path exists at
+	 * all three stages (in the merge base, in head, and in merge),
+	 * then that path won't be involved in any rename detection.
+	 * Interestingly, if FIXME FINISH THIS COMMENT.
+	 */
+	struct string_list *rename_ignore;
+	int i;
+
+	rename_ignore = xcalloc(1, sizeof(struct string_list));
+	for (i = 0; i < unmerged->nr; i++) {
+		const char *path = unmerged->items[i].string;
+		struct stage_data *e = unmerged->items[i].util;
+		unsigned ign_head = is_null_oid(&e->stages[2].oid) &&
+		  oid_eq(&e->stages[1].oid, &e->stages[3].oid) &&
+		  e->stages[1].mode == e->stages[3].mode;
+		unsigned ign_merge = is_null_oid(&e->stages[3].oid) &&
+		  oid_eq(&e->stages[1].oid, &e->stages[2].oid) &&
+		  e->stages[1].mode == e->stages[2].mode;
+		if (ign_head || ign_merge)
+			string_list_append(rename_ignore, path);
+	}
+	return rename_ignore;
+}
+
+
 static int string_list_df_name_compare(const char *one, const char *two)
 {
 	int onelen = strlen(one);
@@ -541,7 +569,8 @@ static struct string_list *get_renames(struct merge_options *o,
 				       struct tree *o_tree,
 				       struct tree *a_tree,
 				       struct tree *b_tree,
-				       struct string_list *entries)
+				       struct string_list *entries,
+				       struct string_list *rename_ignore)
 {
 	int i;
 	struct string_list *renames;
@@ -555,6 +584,7 @@ static struct string_list *get_renames(struct merge_options *o,
 	DIFF_OPT_SET(&opts, RECURSIVE);
 	DIFF_OPT_CLR(&opts, RENAME_EMPTY);
 	opts.detect_rename = DIFF_DETECT_RENAME;
+	opts.ignore_for_renames = rename_ignore;
 	opts.rename_limit = o->merge_rename_limit >= 0 ? o->merge_rename_limit :
 			    o->diff_rename_limit >= 0 ? o->diff_rename_limit :
 			    1000;
@@ -2097,7 +2127,8 @@ int merge_trees(struct merge_options *o,
 	}
 
 	if (unmerged_cache()) {
-		struct string_list *entries, *re_head, *re_merge;
+		struct string_list *entries, *rename_ignore;
+		struct string_list *re_head, *re_merge;
 		int i;
 		/*
 		 * Only need the hashmap while processing entries, so
@@ -2111,9 +2142,12 @@ int merge_trees(struct merge_options *o,
 		get_files_dirs(o, merge);
 
 		entries = get_unmerged();
+		rename_ignore = get_rename_ignore(entries);
 		record_df_conflict_files(o, entries);
-		re_head  = get_renames(o, head, common, head, merge, entries);
-		re_merge = get_renames(o, merge, common, head, merge, entries);
+		re_head  = get_renames(o, head, common, head, merge,
+				       entries, rename_ignore);
+		re_merge = get_renames(o, merge, common, head, merge,
+				       entries, rename_ignore);
 		clean = process_renames(o, re_head, re_merge);
 		if (clean < 0)
 			goto cleanup;
@@ -2140,6 +2174,7 @@ int merge_trees(struct merge_options *o,
 cleanup:
 		string_list_clear(re_merge, 0);
 		string_list_clear(re_head, 0);
+		string_list_clear(rename_ignore, 0);
 		string_list_clear(entries, 1);
 
 		hashmap_free(&o->current_file_dir_set, 1);

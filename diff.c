@@ -4168,6 +4168,7 @@ void diff_setup(struct diff_options *options)
 	}
 
 	options->color_moved = diff_color_moved_default;
+	options->ignore_for_renames = NULL;
 }
 
 void diff_setup_done(struct diff_options *options)
