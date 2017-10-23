@@ -575,4 +575,149 @@ test_expect_success 'rename/rename/add-dest merge still knows about conflicting 
 	test ! -f c
 '
 
+test_conflicts_with_adds_and_renames() {
+	test $1 != 0 && side1=rename || side1=add
+	test $2 != 0 && side2=rename || side2=add
+
+	# Setup:
+	#          L
+	#         / \
+	#   master   ?
+	#         \ /
+	#          R
+	#
+	# Where:
+	#   Both L and R have a file named 'three' which collide.  Each
+	#   file named 'three' could have been involved in a rename, in
+	#   which case there was a file named 'one' or 'two' that was
+	#   related and modified on the opposite side of history.
+	#
+	# Questions:
+	#   1) The index should contain both a stage 2 and stage 3 entry for
+	#      'three'.  Does it?
+	#   2) When renames are involved, the content merges are clean, so
+	#      the index should reflect the content merges, not merely the
+	#      version of 'three' from the prior commit.  Does it?
+	#   3) There should be files in the worktree named 'three~HEAD' and
+	#      'three~R^0' with the (content-merged) version of 'three' from
+	#      the appropriate side of the merge.  Are they present?
+	#   4) There should be no file named 'three' in the working tree.
+	#      That'd make it too likely that users would use it instead of
+	#      carefully looking at both three~HEAD and three~R^0.  Is it
+	#      correctly missing?
+	test_expect_success "setup simple $side1/$side2 conflict" '
+		git rm -rf . &&
+		git clean -fdqx &&
+		rm -rf .git &&
+		git init &&
+
+		# Create a simple file with 10 lines
+		ten="0 1 2 3 4 5 6 7 8 9" &&
+		for i in $ten
+		do
+			echo line $i in a sample file
+		done >file1_v1 &&
+		# Create a second version of same file with one more line
+		cat file1_v1 >file1_v2 &&
+		echo another line >>file1_v2 &&
+
+		# Create an unrelated simple file with 10 lines
+		for i in $ten
+		do
+			echo line $i in another sample file
+		done >file2_v1 &&
+		# Create a second version of same file with one more line
+		cat file2_v1 >file2_v2 &&
+		echo another line >>file2_v2 &&
+
+		# Use a tag to record both these files for simple access,
+		# and clean out these untracked files
+		git tag file1_v1 `git hash-object -w file1_v1` &&
+		git tag file1_v2 `git hash-object -w file1_v2` &&
+		git tag file2_v1 `git hash-object -w file2_v1` &&
+		git tag file2_v2 `git hash-object -w file2_v2` &&
+		git clean -f &&
+
+		# Setup merge-base, consisting of files named "one" and "two"
+		# if renames were involved.
+		touch irrelevant_file &&
+		git add irrelevant_file &&
+		if [ $side1 == "rename" ]; then
+			git show file1_v1 >one &&
+			git add one
+		fi &&
+		if [ $side2 == "rename" ]; then
+			git show file2_v1 >two &&
+			git add two
+		fi &&
+		test_tick && git commit -m initial &&
+
+		git branch L &&
+		git branch R &&
+
+		# Handle the left side
+		git checkout L &&
+		if [ $side1 == "rename" ]; then
+			git mv one three
+		else
+			git show file1_v2 >three &&
+			git add three
+		fi &&
+		if [ $side2 == "rename" ]; then
+			git show file2_v2 >two &&
+			git add two
+		fi &&
+		test_tick && git commit -m L &&
+
+		# Handle the right side
+		git checkout R &&
+		if [ $side1 == "rename" ]; then
+			git show file1_v2 >one &&
+			git add one
+		fi &&
+		if [ $side2 == "rename" ]; then
+			git mv two three
+		else
+			git show file2_v2 >three &&
+			git add three
+		fi &&
+		test_tick && git commit -m R
+	'
+
+	test_expect_failure "check simple $side1/$side2 conflict" '
+		git reset --hard &&
+		git checkout L^0 &&
+
+		# Merge must fail; there is a conflict
+		test_must_fail git merge -s recursive R^0 &&
+
+		# Make sure the index has the right number of entries
+		test 3 = $(git ls-files -s | wc -l) &&
+		test 2 = $(git ls-files -u | wc -l) &&
+
+		# Even for renames, make sure the index contains the MERGED
+		# version of the file, not the version of the file that existed
+		# on the given side.
+		test $(git rev-parse :2:three) = $(git rev-parse file1_v2) &&
+		test $(git rev-parse :3:three) = $(git rev-parse file2_v2) &&
+
+		# Make sure we have the correct number of untracked files
+		test 2 = $(git ls-files -o | wc -l) &&
+
+		# Make sure each file (with merging if rename involved) is
+		# present in the working tree for the user to work with.
+		test $(git hash-object three~HEAD) = $(git rev-parse file1_v2) &&
+		test $(git hash-object three~R^0)  = $(git rev-parse file2_v2) &&
+
+		# "three" should not exist because there is no reason to give
+		# preference to either three~HEAD or three~R^0
+		test ! -f three
+	'
+}
+
+test_conflicts_with_adds_and_renames 1 1
+test_conflicts_with_adds_and_renames 1 0
+test_conflicts_with_adds_and_renames 0 1
+test_conflicts_with_adds_and_renames 0 0
+
 test_done
