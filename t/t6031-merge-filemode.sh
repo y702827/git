@@ -40,12 +40,12 @@ do_one_mode resolve b1 a1
 test_expect_success 'set up mode change in both branches' '
 	git reset --hard HEAD &&
 	git checkout -b a2 master &&
-	: >file2 &&
+	echo true >file2 &&
 	H=$(git hash-object file2) &&
 	test_chmod +x file2 &&
 	git commit -m a2 &&
 	git checkout -b b2 master &&
-	: >file2 &&
+	echo true >file2 &&
 	git add file2 &&
 	git commit -m b2 &&
 	{

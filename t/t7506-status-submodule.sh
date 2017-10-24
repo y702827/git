@@ -240,6 +240,8 @@ test_expect_success 'status -a clean (empty submodule dir)' '
 cat >status_expect <<\EOF
 AA .gitmodules
 A  sub1
+?? .gitmodules~HEAD
+?? .gitmodules~add_sub1
 EOF
 
 test_expect_success 'status with merge conflict in .gitmodules' '
@@ -273,7 +275,7 @@ index badaa4c,44f999a..0000000
 --- a/.gitmodules
 +++ b/.gitmodules
 @@@ -1,3 -1,3 +1,9 @@@
-++<<<<<<< HEAD
+++<<<<<<< ours
  +[submodule "sub2"]
  +	path = sub2
  +	url = ../sub2
@@ -281,7 +283,7 @@ index badaa4c,44f999a..0000000
 + [submodule "sub1"]
 + 	path = sub1
 + 	url = ../sub1
-++>>>>>>> add_sub1
+++>>>>>>> theirs
 EOF
 
 cat >diff_submodule_expect <<\EOF
@@ -290,7 +292,7 @@ index badaa4c,44f999a..0000000
 --- a/.gitmodules
 +++ b/.gitmodules
 @@@ -1,3 -1,3 +1,9 @@@
-++<<<<<<< HEAD
+++<<<<<<< ours
  +[submodule "sub2"]
  +	path = sub2
  +	url = ../sub2
@@ -298,12 +300,13 @@ index badaa4c,44f999a..0000000
 + [submodule "sub1"]
 + 	path = sub1
 + 	url = ../sub1
-++>>>>>>> add_sub1
+++>>>>>>> theirs
 EOF
 
 test_expect_success 'diff with merge conflict in .gitmodules' '
 	(
 		cd super &&
+		git checkout -m .gitmodules &&
 		git diff >../diff_actual 2>&1
 	) &&
 	test_cmp diff_actual diff_expect

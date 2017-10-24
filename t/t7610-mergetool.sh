@@ -37,9 +37,9 @@ test_expect_success 'setup' '
 	git checkout -b branch1 master &&
 	git submodule update -N &&
 	echo branch1 change >file1 &&
-	echo branch1 newfile >file2 &&
+	printf "1\n2\n3\n4\n5\n6\n7\n8\n9\nbranch1 newfile\n" >file2 &&
 	echo branch1 spaced >"spaced name" &&
-	echo branch1 both added >both &&
+	printf "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\nbranch1 both added\n" >both &&
 	echo branch1 change file11 >file11 &&
 	echo branch1 change file13 >file13 &&
 	echo branch1 sub >subdir/file3 &&
@@ -84,9 +84,9 @@ test_expect_success 'setup' '
 	git checkout master &&
 	git submodule update -N &&
 	echo master updated >file1 &&
-	echo master new >file2 &&
+	printf "1\n2\n3\n4\n5\n6\n7\n8\n9\nmaster new\n" >file2 &&
 	echo master updated spaced >"spaced name" &&
-	echo master both added >both &&
+	printf "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\nmaster both added\n" >both &&
 	echo master updated file12 >file12 &&
 	echo master updated file14 >file14 &&
 	echo master new sub >subdir/file3 &&
@@ -139,7 +139,7 @@ test_expect_success 'custom mergetool' '
 	( yes "d" | git mergetool file12 >/dev/null 2>&1 ) &&
 	( yes "l" | git mergetool submod >/dev/null 2>&1 ) &&
 	test "$(cat file1)" = "master updated" &&
-	test "$(cat file2)" = "master new" &&
+	test "$(git hash-object file2)" = "$(git rev-parse master:file2)" &&
 	test "$(cat subdir/file3)" = "master new sub" &&
 	test "$(cat submod/bar)" = "branch1 submodule" &&
 	git commit -m "branch1 resolved with mergetool"
@@ -163,7 +163,7 @@ test_expect_success 'mergetool crlf' '
 	( yes "d" | git mergetool file12 >/dev/null 2>&1 ) &&
 	( yes "r" | git mergetool submod >/dev/null 2>&1 ) &&
 	test "$(printf x | cat file1 -)" = "$(printf "master updated\r\nx")" &&
-	test "$(printf x | cat file2 -)" = "$(printf "master new\r\nx")" &&
+	test "$(printf x | cat file2 -)" = "$(printf "1\r\n2\r\n3\r\n4\r\n5\r\n6\r\n7\r\n8\r\n9\r\nmaster new\r\nx")" &&
 	test "$(printf x | cat subdir/file3 -)" = "$(printf "master new sub\r\nx")" &&
 	git submodule update -N &&
 	test "$(cat submod/bar)" = "master submodule" &&
@@ -171,7 +171,7 @@ test_expect_success 'mergetool crlf' '
 '
 
 test_expect_success 'mergetool in subdir' '
-	test_when_finished "git reset --hard" &&
+	test_when_finished "git reset --hard && git clean -f" &&
 	git checkout -b test$test_count branch1 &&
 	git submodule update -N &&
 	(
@@ -183,7 +183,7 @@ test_expect_success 'mergetool in subdir' '
 '
 
 test_expect_success 'mergetool on file in parent dir' '
-	test_when_finished "git reset --hard" &&
+	test_when_finished "git reset --hard && git clean -f" &&
 	git checkout -b test$test_count branch1 &&
 	git submodule update -N &&
 	(
@@ -197,14 +197,14 @@ test_expect_success 'mergetool on file in parent dir' '
 		( yes "d" | git mergetool ../file12 >/dev/null 2>&1 ) &&
 		( yes "l" | git mergetool ../submod >/dev/null 2>&1 ) &&
 		test "$(cat ../file1)" = "master updated" &&
-		test "$(cat ../file2)" = "master new" &&
+		test "$(git hash-object ../file2)" = "$(git rev-parse master:file2)" &&
 		test "$(cat ../submod/bar)" = "branch1 submodule" &&
 		git commit -m "branch1 resolved with mergetool - subdir"
 	)
 '
 
 test_expect_success 'mergetool skips autoresolved' '
-	test_when_finished "git reset --hard" &&
+	test_when_finished "git reset --hard && git clean -f" &&
 	git checkout -b test$test_count branch1 &&
 	git submodule update -N &&
 	test_must_fail git merge master &&
@@ -217,7 +217,7 @@ test_expect_success 'mergetool skips autoresolved' '
 '
 
 test_expect_success 'mergetool merges all from subdir (rerere disabled)' '
-	test_when_finished "git reset --hard" &&
+	test_when_finished "git reset --hard && git clean -f" &&
 	git checkout -b test$test_count branch1 &&
 	test_config rerere.enabled false &&
 	(
@@ -226,7 +226,7 @@ test_expect_success 'mergetool merges all from subdir (rerere disabled)' '
 		( yes "r" | git mergetool ../submod ) &&
 		( yes "d" "d" | git mergetool --no-prompt ) &&
 		test "$(cat ../file1)" = "master updated" &&
-		test "$(cat ../file2)" = "master new" &&
+		test "$(git hash-object ../file2)" = "$(git rev-parse master:file2)" &&
 		test "$(cat file3)" = "master new sub" &&
 		( cd .. && git submodule update -N ) &&
 		test "$(cat ../submod/bar)" = "master submodule" &&
@@ -245,7 +245,7 @@ test_expect_success 'mergetool merges all from subdir (rerere enabled)' '
 		( yes "r" | git mergetool ../submod ) &&
 		( yes "d" "d" | git mergetool --no-prompt ) &&
 		test "$(cat ../file1)" = "master updated" &&
-		test "$(cat ../file2)" = "master new" &&
+		test "$(git hash-object ../file2)" = "$(git rev-parse master:file2)" &&
 		test "$(cat file3)" = "master new sub" &&
 		( cd .. && git submodule update -N ) &&
 		test "$(cat ../submod/bar)" = "master submodule" &&
@@ -631,7 +631,7 @@ test_expect_success 'custom commands override built-ins' '
 	test_config mergetool.defaults.trustExitCode true &&
 	test_must_fail git merge master &&
 	git mergetool --no-prompt --tool defaults -- both &&
-	echo master both added >expected &&
+	git cat-file -p master:both >expected &&
 	test_cmp both expected
 '
 

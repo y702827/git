@@ -27,7 +27,7 @@ clean_branchnames () {
 }
 
 test_expect_success '-m restores 2-way conflicted+resolved file' '
-	cp each.txt each.txt.conflicted &&
+	test_must_fail git merge-file -p each.txt~HEAD /dev/null each.txt~master >each.txt.conflicted &&
 	echo resolved >each.txt &&
 	git add each.txt &&
 	git checkout -m -- each.txt &&

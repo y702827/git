@@ -280,36 +280,36 @@ test_expect_success 'setup: file2 added differently in two branches' '
 	git reset --hard &&
 
 	git checkout -b fourth &&
-	echo Hallo >file2 &&
+	printf "1\n2\n3\n4\n5\n6\n7\n8\n9\nHallo" >file2 &&
 	git add file2 &&
 	test_tick &&
 	git commit -m version1 &&
 
 	git checkout third &&
-	echo Bello >file2 &&
+	printf "1\n2\n3\n4\n5\n6\n7\n8\n9\nBello" >file2 &&
 	git add file2 &&
 	test_tick &&
 	git commit -m version2 &&
 
 	test_must_fail git merge fourth &&
-	echo Cello >file2 &&
+	printf "1\n2\n3\n4\n5\n6\n7\n8\n9\nCello" >file2 &&
 	git add file2 &&
 	git commit -m resolution
 '
 
 test_expect_success 'resolution was recorded properly' '
-	echo Cello >expected &&
+	printf "1\n2\n3\n4\n5\n6\n7\n8\n9\nCello" >expected &&
 
 	git reset --hard HEAD~2 &&
 	git checkout -b fifth &&
 
-	echo Hallo >file3 &&
+	printf "1\n2\n3\n4\n5\n6\n7\n8\n9\nHallo" >file3 &&
 	git add file3 &&
 	test_tick &&
 	git commit -m version1 &&
 
 	git checkout third &&
-	echo Bello >file3 &&
+	printf "1\n2\n3\n4\n5\n6\n7\n8\n9\nBello" >file3 &&
 	git add file3 &&
 	test_tick &&
 	git commit -m version2 &&

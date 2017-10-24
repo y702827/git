@@ -62,7 +62,7 @@ test_expect_success 'setup modify/delete + directory/file conflict' '
 	# Throw in letters.txt for sorting order fun
 	# ("letters.txt" sorts between "letters" and "letters/file")
 	echo i >>letters &&
-	echo "version 2" >letters.txt &&
+	printf "1\n2\n3\n4\n5\nversion 2" >letters.txt &&
 	git add letters letters.txt &&
 	git commit -m modified &&
 
@@ -70,7 +70,7 @@ test_expect_success 'setup modify/delete + directory/file conflict' '
 	git rm letters &&
 	mkdir letters &&
 	>letters/file &&
-	echo "version 1" >letters.txt &&
+	printf "1\n2\n3\n4\n5\nversion 1" >letters.txt &&
 	git add letters letters.txt &&
 	git commit -m deleted
 '

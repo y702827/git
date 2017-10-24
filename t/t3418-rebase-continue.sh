@@ -10,10 +10,17 @@ set_fake_editor
 
 test_expect_success 'setup' '
 	test_commit "commit-new-file-F1" F1 1 &&
-	test_commit "commit-new-file-F2" F2 2 &&
+	printf "1\n2\n2\n" >F2 &&
+	git add F2 &&
+	test_tick &&
+	git commit -m "commit-new-file-F2" &&
 
 	git checkout -b topic HEAD^ &&
-	test_commit "commit-new-file-F2-on-topic-branch" F2 22 &&
+	printf "1\n2\n22\n" >F2 &&
+	git add F2 &&
+	test_tick &&
+	git commit -m "commit-new-file-F2-on-topic-branch" &&
+	git tag "commit-new-file-F2-on-topic-branch" &&
 
 	git checkout master
 '
@@ -48,7 +55,13 @@ test_expect_success 'rebase --continue can not be used with other options' '
 test_expect_success 'rebase --continue remembers merge strategy and options' '
 	rm -fr .git/rebase-* &&
 	git reset --hard commit-new-file-F2-on-topic-branch &&
-	test_commit "commit-new-file-F3-on-topic-branch" F3 32 &&
+
+	printf "1\n2\n32\n" >F3 &&
+	git add F3 &&
+	test_tick &&
+	git commit -m "commit-new-file-F3-on-topic-branch" &&
+	git tag "commit-new-file-F3-on-topic-branch" &&
+
 	test_when_finished "rm -fr test-bin funny.was.run" &&
 	mkdir test-bin &&
 	cat >test-bin/git-merge-funny <<-EOF &&
@@ -78,7 +91,13 @@ test_expect_success 'setup rerere database' '
 	rm -fr .git/rebase-* &&
 	git reset --hard commit-new-file-F3-on-topic-branch &&
 	git checkout master &&
-	test_commit "commit-new-file-F3" F3 3 &&
+
+	printf "1\n2\n3\n" >F3 &&
+	git add F3 &&
+	test_tick &&
+	git commit -m "commit-new-file-F3" &&
+	git tag "commit-new-file-F3" &&
+
 	test_config rerere.enabled true &&
 	test_must_fail git rebase -m master topic &&
 	echo "Resolved" >F2 &&

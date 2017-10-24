@@ -87,9 +87,12 @@ test_expect_success 'refuse to merge binary files' '
 	git reset --hard &&
 	printf "\0" > binary-file &&
 	git add binary-file &&
-	git commit -m binary &&
-	git checkout G &&
+	git commit -m initial-binary &&
 	printf "\0\0" > binary-file &&
+	git add binary-file &&
+	git commit -m binary1 &&
+	git checkout -b H HEAD~1 &&
+	printf "\0\0\0" > binary-file &&
 	git add binary-file &&
 	git commit -m binary2 &&
 	test_must_fail git merge F > merge.out 2> merge.err &&

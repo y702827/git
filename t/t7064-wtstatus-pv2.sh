@@ -259,14 +259,14 @@ test_expect_success 'verify AA (add-add) conflict' '
 
 	git branch AA_A master &&
 	git checkout AA_A &&
-	echo "Branch AA_A" >conflict.txt &&
+	printf "1\n2\n3\n4\n5\n6\nBranch AA_A" >conflict.txt &&
 	OID_AA_A=$(git hash-object -t blob -- conflict.txt) &&
 	git add conflict.txt &&
 	git commit -m "branch aa_a" &&
 
 	git branch AA_B master &&
 	git checkout AA_B &&
-	echo "Branch AA_B" >conflict.txt &&
+	printf "1\n2\n3\n4\n5\n6\nBranch AA_B" >conflict.txt &&
 	OID_AA_B=$(git hash-object -t blob -- conflict.txt) &&
 	git add conflict.txt &&
 	git commit -m "branch aa_b" &&

@@ -37,7 +37,8 @@ test_must_fail git merge master'
 
 test_expect_success \
 'the merge result must be a file' '
-test -f symlink'
+test -f symlink~HEAD &&
+test -f symlink~master'
 
 test_expect_success \
 'merge master into b-file, which has a file instead of a symbolic link' '
@@ -46,7 +47,8 @@ test_must_fail git merge master'
 
 test_expect_success \
 'the merge result must be a file' '
-test -f symlink'
+test -f symlink~HEAD &&
+test -f symlink~master'
 
 test_expect_success \
 'merge b-file, which has a file instead of a symbolic link, into master' '
@@ -56,6 +58,7 @@ test_must_fail git merge b-file'
 
 test_expect_success \
 'the merge result must be a file' '
-test -f symlink'
+test -f symlink~HEAD &&
+test -f symlink~master'
 
 test_done

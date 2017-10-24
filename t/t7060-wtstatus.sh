@@ -214,6 +214,7 @@ EOF
 	git status --untracked-files=no >actual &&
 	test_i18ncmp expected actual &&
 	git reset --hard &&
+	git clean -f *~* &&
 	git checkout master
 '
 

@@ -4,14 +4,23 @@ test_description='cherry-pick should rerere for conflicts'
 
 . ./test-lib.sh
 
+test_basic_commit () {
+	file=$2 &&
+	printf "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n$1" >"$2" &&
+	git add "$file" &&
+	test_tick
+	git commit -m "$1" &&
+	git tag "$1"
+}
+
 test_expect_success setup '
-	test_commit foo &&
-	test_commit foo-master foo &&
-	test_commit bar-master bar &&
+	test_basic_commit foo foo &&
+	test_basic_commit foo-master foo &&
+	test_basic_commit bar-master bar &&
 
 	git checkout -b dev foo &&
-	test_commit foo-dev foo &&
-	test_commit bar-dev bar &&
+	test_basic_commit foo-dev foo &&
+	test_basic_commit bar-dev bar &&
 	git config rerere.enabled true
 '
 

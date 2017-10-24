@@ -684,7 +684,7 @@ test_conflicts_with_adds_and_renames() {
 		test_tick && git commit -m R
 	'
 
-	test_expect_failure "check simple $side1/$side2 conflict" '
+	test_expect_success "check simple $side1/$side2 conflict" '
 		git reset --hard &&
 		git checkout L^0 &&
 
