@@ -427,4 +427,8 @@ extern void print_stat_summary(FILE *fp, int files,
 			       int insertions, int deletions);
 extern void setup_diff_pager(struct diff_options *);
 
+extern int estimate_similarity(struct diff_filespec *src,
+			       struct diff_filespec *dst,
+			       int minimum_score);
+
 #endif /* DIFF_H */

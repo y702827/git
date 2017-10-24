@@ -178,13 +178,15 @@ test_expect_success 'setup differently handled merges of rename/add conflict' '
 
 	git checkout B^0 &&
 	test_must_fail git merge C &&
-	git clean -f &&
+	mv new_a~HEAD new_a &&
+	git add new_a &&
+	rm new_a~C &&
 	test_tick && git commit -m D &&
 	git tag D &&
 
 	git checkout C^0 &&
 	test_must_fail git merge B &&
-	rm new_a~HEAD new_a &&
+	rm new_a~HEAD new_a~B &&
 	printf "Incorrectly merged content" >>new_a &&
 	git add -u &&
 	test_tick && git commit -m E &&
@@ -204,7 +206,10 @@ test_expect_success 'git detects differently handled merges conflict' '
 	test $(git rev-parse :2:new_a) = $(git rev-parse D:new_a) &&
 	test $(git rev-parse :3:new_a) = $(git rev-parse E:new_a) &&
 
-	git cat-file -p B:new_a >>merged &&
+	# Since A:a == B:new_a, the three-way merge of A:a, B:new_a, and
+	# C:a is just C:a.  Then we do a two-way merge of that with
+	# C:new_a.
+	git cat-file -p C:a >>merged &&
 	git cat-file -p C:new_a >>merge-me &&
 	>empty &&
 	test_must_fail git merge-file \

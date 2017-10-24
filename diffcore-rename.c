@@ -127,9 +127,9 @@ struct diff_score {
 	short name_score;
 };
 
-static int estimate_similarity(struct diff_filespec *src,
-			       struct diff_filespec *dst,
-			       int minimum_score)
+int estimate_similarity(struct diff_filespec *src,
+			struct diff_filespec *dst,
+			int minimum_score)
 {
 	/* src points at a file that existed in the original tree (or
 	 * optionally a file in the destination tree) and dst points
