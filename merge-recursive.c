@@ -1223,6 +1223,20 @@ static int handle_file_collision(struct merge_options *o,
 		remove_file(o, 1, prev_path2,
 			    o->call_depth || would_lose_untracked(prev_path2));
 
+	/*
+	 * Remove the collision path.  We'll either overwrite with merged
+	 * contents, or just write out to differently named files.
+	 *
+	 * FIXME: It's possible that neither of the two files have conflict
+	 * markers already present, and that they're identical, and that
+	 * the current working copy happens to match, in which case we are
+	 * unnecessarily making touching the working tree file.  It's not
+	 * a likely enough scenario that I want to code up the checks for it
+	 * and a better fix is available if we restructure how unpack_trees()
+	 * and merge-recursive interoperate anyway, so punting for now...
+	 */
+	remove_file(o, 0, collide_path, 0);
+
 	/* Store things in diff_filespecs for functions that need it */
 	memset(&a, 0, sizeof(struct diff_filespec));
 	memset(&b, 0, sizeof(struct diff_filespec));
@@ -1263,8 +1277,10 @@ static int handle_file_collision(struct merge_options *o,
 	 * Put the colliding files into different paths, and record the
 	 * updated sha1sums in the index
 	 */
-	char *new_path1 = unique_path(o, collide_path, branch1);
-	char *new_path2 = unique_path(o, collide_path, branch2);
+	char *new_path1 = (o->call_depth && prev_path1) ? strdup(prev_path1) :
+			  unique_path(o, collide_path, branch1);
+	char *new_path2 = (o->call_depth && prev_path1) ? strdup(prev_path2) :
+			  unique_path(o, collide_path, branch2);
 	output(o, 1, _("Renaming collisions at %s to %s and %s instead"),
 	       collide_path, new_path1, new_path2);
 
@@ -1273,9 +1289,16 @@ static int handle_file_collision(struct merge_options *o,
 	if (update_file(o, 0, b_oid, b_mode, new_path2))
 		return -1;
 
-	if (!o->call_depth)
-		if (update_stages(o, collide_path, NULL, &a, &b))
-			return -1;
+	/* Update index too, making sure to get stage order correct. */
+	if (!o->call_depth) {
+		if (o->branch1 == branch1) {
+			if (update_stages(o, collide_path, NULL, &a, &b))
+				return -1;
+		} else {
+			if (update_stages(o, collide_path, NULL, &b, &a))
+				return -1;
+		}
+	}
 
 	free(new_path2);
 	free(new_path1);
@@ -1406,16 +1429,12 @@ static int conflict_rename_rename_2to1(struct merge_options *o,
 	char *path = c1->path; /* == c2->path */
 	struct merge_file_info mfi_c1;
 	struct merge_file_info mfi_c2;
-	int ret;
 
 	output(o, 1, _("CONFLICT (rename/rename): "
 	       "Rename %s->%s in %s. "
 	       "Rename %s->%s in %s"),
 	       a->path, c1->path, ci->branch1,
 	       b->path, c2->path, ci->branch2);
-
-	remove_file(o, 1, a->path, o->call_depth || would_lose_untracked(a->path));
-	remove_file(o, 1, b->path, o->call_depth || would_lose_untracked(b->path));
 
 	if (merge_file_special_markers(o, a, c1, &ci->ren1_other,
 				       o->branch1, c1->path,
@@ -1425,34 +1444,11 @@ static int conflict_rename_rename_2to1(struct merge_options *o,
 				       o->branch2, c2->path, &mfi_c2))
 		return -1;
 
-	if (o->call_depth) {
-		/*
-		 * If mfi_c1.clean && mfi_c2.clean, then it might make
-		 * sense to do a two-way merge of those results.  But, I
-		 * think in all cases, it makes sense to have the virtual
-		 * merge base just undo the renames; they can be detected
-		 * again later for the non-recursive merge.
-		 */
-		remove_file(o, 0, path, 0);
-		ret = update_file(o, 0, &mfi_c1.oid, mfi_c1.mode, a->path);
-		if (!ret)
-			ret = update_file(o, 0, &mfi_c2.oid, mfi_c2.mode,
-					  b->path);
-	} else {
-		char *new_path1 = unique_path(o, path, ci->branch1);
-		char *new_path2 = unique_path(o, path, ci->branch2);
-		output(o, 1, _("Renaming %s to %s and %s to %s instead"),
-		       a->path, new_path1, b->path, new_path2);
-		remove_file(o, 0, path, 0);
-		ret = update_file(o, 0, &mfi_c1.oid, mfi_c1.mode, new_path1);
-		if (!ret)
-			ret = update_file(o, 0, &mfi_c2.oid, mfi_c2.mode,
-					  new_path2);
-		free(new_path2);
-		free(new_path1);
-	}
-
-	return ret;
+	return handle_file_collision(o, path, a->path, b->path,
+				     ci->branch1, ci->branch2,
+				     &mfi_c1.oid, mfi_c1.mode,
+				     &mfi_c2.oid, mfi_c2.mode,
+				     !mfi_c1.clean || !mfi_c2.clean);
 }
 
 static int conflict_rename_add(struct merge_options *o,
@@ -1971,9 +1967,14 @@ static int process_entry(struct merge_options *o,
 				clean_merge = -1;
 			break;
 		case RENAME_TWO_FILES_TO_ONE:
-			clean_merge = 0;
-			if (conflict_rename_rename_2to1(o, conflict_info))
-				clean_merge = -1;
+			/*
+			 * Probably unclean merge, but if the two renamed
+			 * files merge cleanly and the two resulting files
+			 * can then be two-way merged cleanly, I guess it's
+			 * a clean merge?
+			 */
+			clean_merge = conflict_rename_rename_2to1(o,
+								  conflict_info);
 			break;
 		default:
 			entry->processed = 0;

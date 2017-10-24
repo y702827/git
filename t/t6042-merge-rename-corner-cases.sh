@@ -358,7 +358,7 @@ test_expect_success 'setup rename/rename (2to1) + modify/modify' '
 	git init &&
 
 	printf "1\n2\n3\n4\n5\n" >a &&
-	printf "5\n4\n3\n2\n1\n" >b &&
+	printf "9\n8\n7\n6\n5\n" >b &&
 	git add a b &&
 	git commit -m A &&
 	git tag A &&
