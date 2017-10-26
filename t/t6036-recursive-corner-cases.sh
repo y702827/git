@@ -168,7 +168,7 @@ test_expect_success 'setup differently handled merges of rename/add conflict' '
 	git branch B &&
 	git checkout -b C &&
 	echo 10 >>a &&
-	echo "other content" >>new_a &&
+	printf "0\n1\n2\n3\n4\n5\n6\n7\nfoobar" >new_a &&
 	git add a new_a &&
 	test_tick && git commit -m C &&
 
@@ -178,16 +178,14 @@ test_expect_success 'setup differently handled merges of rename/add conflict' '
 
 	git checkout B^0 &&
 	test_must_fail git merge C &&
-	mv new_a~HEAD new_a &&
+	git clean -f &&
 	git add new_a &&
-	rm new_a~C &&
 	test_tick && git commit -m D &&
 	git tag D &&
 
 	git checkout C^0 &&
 	test_must_fail git merge B &&
-	rm new_a~HEAD new_a~B &&
-	printf "Incorrectly merged content" >>new_a &&
+	printf "0\n1\n2\n3\n4\n5\n6\n7\nbad merge" >new_a &&
 	git add -u &&
 	test_tick && git commit -m E &&
 	git tag E

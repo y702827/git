@@ -1212,7 +1212,6 @@ static int handle_file_collision(struct merge_options *o,
 {
 	struct merge_file_info mfi;
 	struct diff_filespec null, a, b;
-	int do_merge = 0;
 	int minimum_score;
 
 	/* Remove rename sources if this was rename/add or rename/rename(2to1) */
@@ -1258,11 +1257,7 @@ static int handle_file_collision(struct merge_options *o,
 	 */
 	minimum_score = o->rename_score ? o->rename_score : DEFAULT_RENAME_SCORE;
 	if (!conflict_markers_already_present && minimum_score <=
-	    estimate_similarity(&a, &b, o->rename_score))
-		do_merge = 1;
-	if (o->call_depth && (!prev_path1 || !prev_path2))
-		do_merge = 1;
-	if (do_merge) {
+	    estimate_similarity(&a, &b, o->rename_score)) {
 		if (merge_file_1(o, &null, &a, &b, branch1, branch2, &mfi))
 			return -1;
 		if (update_file(o, mfi.clean, &mfi.oid, mfi.mode, collide_path))
