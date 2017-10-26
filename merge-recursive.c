@@ -1279,7 +1279,7 @@ static int handle_file_collision(struct merge_options *o,
 	 */
 	char *new_path1 = (o->call_depth && prev_path1) ? strdup(prev_path1) :
 			  unique_path(o, collide_path, branch1);
-	char *new_path2 = (o->call_depth && prev_path1) ? strdup(prev_path2) :
+	char *new_path2 = (o->call_depth && prev_path2) ? strdup(prev_path2) :
 			  unique_path(o, collide_path, branch2);
 	output(o, 1, _("Renaming collisions at %s to %s and %s instead"),
 	       collide_path, new_path1, new_path2);
