@@ -1,0 +1,148 @@
+Important:
+  X Reduce/remove usage of assert (sb)
+  X Use strbuf instead of char*
+  X cherry-pick of head when head renames directories seems to fail (valgrind)
+
+Performance series:
+  X avoid re-checking sources already involved in exact matches
+  X avoid unnecessary string_list_lookup in get_unmerged()
+  X is there an unnecessary string_list_insert that could be _append ?
+  X ignore files as sources for renames if unmodified on OTHER side of history
+    X important tests: t7610, t3418, t4200, t6031, t3504 (and t6042ish)
+    X causes rename/add to sometimes be reported as add/add and rename/rename
+      to sometimes be reported as rename/add or add/add.  Not a problem if
+      they're handled the same.  But rename/add handling is broken.
+  . except don't miss directory renames entirely (make this a separate
+    commit)
+  . before doing N^2 comparisons, if any of the exact renames suggest a
+    directory rename has taken place, see if applying that directory rename
+    to any relevant source paths yields the name of a destination path.  If so,
+    check for similarity, and if the threshold is met, record the rename pair.
+    Don't bother looking for the "best" pairing in such a case.
+
+  . add existence_bitmap to stage_data, use it to accelerate get_rename_ignore
+    (see other perf, under augment save_files_dirs())
+
+Other Perf:
+  . perf shortcut: if no directory removed (or added), don't do directory
+    rename detection.  [can determine this when walking over trees --
+    in either unpack_trees() or save_files_dirs()]
+  . perf: should be able to memoize values in check_dir_renamed()
+  . perf: augment save_files_dirs() with side information.  Should allow
+    avoiding tree_has_path() calls, and may help accelerate get_rename_ignore
+  . perf: pass callback function to unpack_trees that it can call while
+    traversing trees?  That way we don't have to traverse again for
+    save_files_dirs().
+
+  . if any files added or removed, then instead of modifying existing index,
+    create a new one during process_entry() loop (though we'd also have to
+    iterate non-unmerged entries and/or do big copies between them).
+  . unpack_trees records trivial_merge case numbers to avoid recomputation
+
+Other Perf Investigation:
+  . Are my calls to get_tree_entry() excessively expensive?  Avoidable?
+    Memoizable?
+  . Is there excessive stat'ing when cherry-picking a small change?
+
+  . Figure out other pieces:
+    . What takes .24s before getting to merge_trees()?
+    . What takes .06s between end of unpack_trees and handle_renames?
+      (Is get_files_dirs() and get_unmerged() that slow?  Which?)
+    . figure out what uses the final ~.25s-.30s (5%-6%) of runtime.
+  . Dig deeper into big functions
+    . unpack_trees(): is it excessive stat'ing?
+    . handle_renames(): is more needed than guess rename from exact renames?
+      is get_rename_ignore() too slow?  Is slowness in get_diffpairs(), or
+      something else?
+    . process_entry(): is new index instead of old enough or are there other
+      slow pieces?
+
+
+Overall
+  X Cover letter -- explain how rules make it nice because we can just
+      change filepairs into a rename and then use the normal process_renames
+      and process_entry logic.
+  X Make some sub-functions for get_renames()
+  X There is now the possibility of losing untracked files.  Need some testcases.
+    X Basic rename/delete
+    X Basic add-moved-by-dir-rename
+    X Need to add uptodate check for rename/rename(2to1), both with dir-rename
+      and without.
+    X Think through more cases...
+    X Is it possible to have unpack_trees() checks throw an error when there
+      is no actual conflict?
+  X There are more opportunities to lose dirty files.
+    X Add testcases
+    X Fix them
+  X Check for signed-off-by
+      # Next two should differ by exactly one ('cuz cover letter "commit")
+      git rev-list --count origin/master..
+      git rev-list --count --grep 'Signed-off-by' origin/master..
+      # Or, more simply....
+      git log --oneline --invert-grep --grep 'Signed-off-by' origin/master..
+  X record_df_conflict_files() call needs to happen AFTER handle_renames()
+  X Bugfix: rename/rename, rename/add, add/add synchronization
+    rename/add really busted, ever since commit 882fd11
+    (merge-recursive: Delay content merging for renames, 2010-09-20)
+  X Fix progress code
+  X Add two more test cases (renamed dir only contains immediate subdirs):
+    . For both, add file goal/c; does it get renamed to priority/c ?
+    . Case 1: goal/{a,b}/$more_files -> priority/{a,b}/$more_files
+    . Case 2: goal/{a,b}/$more_files -> priority/{alpha,bravo}/$more_files
+    . I think code succeeds on first, fails on second
+  / Figure out memory cleanliness
+    . Still need to free src_entry and dst_entry'es ... sometimes
+
+Commits to comment on and things to highlight:
+  x perf slowdown of testsuite (get_rename_ignore needs optimization?)
+  ? Memory cleanliness (still need to free src_entry and dst_entry's)
+  X code for handling overwriting dirty is kinda ugly and may miss some cases
+  X note which patches can be backported
+  X unrename case
+  X the three-way-content merge and store conflicts in higher order stages
+    should be highlighted
+  x anything not completed in performance
+  . the existence of my separate design rant
+
+Other perf notes:
+  Investigation notes:
+    . Is there excessive stat'ing when cherry-picking a small change?
+    . Can I cherry-pick an empty commit and test perf of that?
+
+  Long term performance
+    . unpack_trees does index only
+    . unpack_trees records trivial_merge case numbers to avoid recomputation
+    . merge-recursive does index only merge
+    . merge-recursive takes new index, then tries to checkout to tree
+
+  Investigate performance more thoroughly:
+      . ts (from moreutils) & stdbuf:
+        $ time stdbuf -oL -eL git cherry-pick FETCH_HEAD |& ts -s "%.s"
+        0.736654 rename_dst_nr = 57963; rename_src_nr = 48941
+        0.760815 rename_count = 30912
+        0.764754 ignore_count = 18022
+        0.764865 num_create = 27051; num_src = 7
+        21.795335 Renaming detection finished.
+        21.800970 No renames to find.
+        21.801026 Renaming detection finished.
+        34.840998 error: could not apply 9327fd6950f... QA-98552 Mark objects incoming later
+        34.841075 hint: after resolving the conflicts, mark the corrected paths
+        34.841090 hint: with 'git add <paths>' or 'git rm <paths>'
+        34.841101 hint: and commit the result with 'git commit'
+
+        real	0m34.896s
+        user	0m34.332s
+        sys	0m0.700s
+      . perf
+         # -g results in totally different types of reports/annotations
+         perf record -e cpu-cycles --call-graph {dwarf|fp} $CMD
+         perf report -n [--no-children]
+
+         perf record $CMD
+         perf report
+         perf annotate diffcore_rename
+      . sysprof
+
+
+time git fast-export --no-data --export-marks=known v2.15.0 --signed-tags=strip >/dev/null
+git fast-export --no-data --import-marks=known v2.15.0-rc0.. | perl -pe 's/newren\@palantir.com/newren\@gmail.com/g; s/^data ([0-9]*)$/"data ".($1-3)/eg' | git fast-import --quiet --import-marks=known --force

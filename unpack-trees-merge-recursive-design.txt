@@ -1,0 +1,113 @@
+The current merge handling code, while it basically works, is showing some
+strain with its current design.  The current design can be "summarized" as:
+
+  1) Call unpack_trees() to have it do initial three-way merge work:
+
+     1a) First checks whether any untracked or dirty (not-uptodate) files
+         would be overwritten by the merge.  But unpack_trees doesn't
+         understand renames, so there are problems:
+
+         1a-i) Not aborting with an error when needed; examples:
+
+           * not-uptodate file involved in rename can be overwritten.  See
+	     commit 30fd3a5, merge overwrites unstaged changes in renamed
+	     file, 2012-04-15.  Can partially be worked around.
+
+           * ovewriting untracked files becomes a big worry for directory
+	     rename detection (see testcases 10a-10d of the new t6043),
+	     though it can be worked around with some strain
+
+         1a-ii Aborting with an error when it shouldn't; example:
+
+           * testcase 10e of the new t6043.  Not fixable with current design.
+
+     1b) updates the index AND working tree for trivial cases.
+
+     1c) Stores conflicts as higher order stages in the index for the next
+         steps to resolve.
+
+  2) Detects renames
+
+  3) Handles any rename-specific things it needs to do
+
+  4) Loops through the unmerged entries, processing them.  Notably:
+
+     4a) Special care taken in order to allow D/F cases to be handled
+         appropriately; if every path under the directory in a D/F conflict
+         resolves away so the directory is no longer needed, then the there
+         is no more D/F conflict and the file can be handled in place.  But
+         the directory entries must be resolved first for us to be able to
+         find this out otherwise we may print spurious errors when we're
+         handling the file of the D/F conflict.  D/F conflicts don't just
+         need to come from the two sides of history; untracked contents can
+         also make life fun for us.
+
+     4b) For every path, the working directory needs to be checked before
+         the index is updated (would_lose_untracked() depends on current
+         in-memory index; this has caused hours of debugging problems and
+         led to big comments being placed both at the top of
+         update_stages() years ago and recently the new
+         apply_directory_rename_changes())
+
+     4c) Updates the index AND working tree as it processes each entry
+
+     4e) Prints conflict messages and such as it goes
+
+     4f) There are several codepaths for fatal errors (often signified with
+         a -1 return value), for which it decides to abort looping through
+         the remaining unmerged entries and just quit, leaving the working
+         directory in a weird intermediate state.  Hopefully the testsuite
+         has sufficient checks to ensure we don't actually ever take any
+         such code paths, but it was surprisingly easy to trigger one while
+         making changes and, owing to a new testcase that expected a
+         conflict being very simplistic, making it easy to incorrectly
+         think that this new case was actually handled correctly.  It makes
+         the code more difficult to extend/tweak.
+
+     4g) Many codepaths essentially have to worry about what I call 4-way
+         merges (merge base + HEAD + MERGE + working copy), because: (A)
+         unpack_trees() doesn't understand renames, so it can't abort early
+         appropriately; (B) unpack_trees() has already updated the working
+         tree when it finished, so it's now too late to "abort early" if
+         there's a dirty or untracked file that's involved in a rename that
+         would be overwritten.
+
+         The problem is deeper than changing unpack_trees(), though, since
+         the process-both-index-and-working-tree-as-we-process-each-entry
+         design of merge-recursive means it is contributing to this problem
+         as well.
+
+	 Dealing with 4-way merges essentially means we need to find some
+	 kind of way throwing extra warning and error messages and writing
+	 merge results to alternate paths in the working copy to avoid
+	 clobbering dirty and untracked files.
+
+What I think would be simpler, and more correct:
+  1) Perform the merge without checking or touching the working copy AT ALL.
+     (unpack_trees(), for this purpose, shouldn't check or touch working
+     tree either)
+  2) Once we have a new index (possibly with higher stage entries), then
+     check the working tree, and either error early ("files would be
+     overwritten by merge") or proceed and update all working tree files.
+
+Implementation notes:
+  A) We could still use unpack_trees, as long as we make it not check or
+     touch the working copy (does the index_only of unpack_trees_options
+     do this?) -- and make it not discard the current index.
+  B) Much of the existing merge-recursive code could be simplified to not
+     have to worry about the working copy (and since that code is sprinkled
+     everywhere, including with double-negative argument names, that would
+     feel like a nice cleanup, and allow one to concentrate on fewer types
+     of tasks at a time with each function)
+  C) We'd need need a new function that could take a given index (with
+     possible conflicts) and
+     1) checks whether the current index/working-tree could be updated
+        to the given index without losing dirty/untracked files
+     2) updates the current index/working-tree to the given index appropriately
+The one gotcha here is that step C will have to be supplemented somehow to
+know how to correctly report special cases (e.g. various conflicts such as
+rename/rename(2to1) or rename/add).  But, I feel that the separation of
+concerns would make the code not only more correct, but possibly more
+malleable and approachable as well.
+
+Thoughts?
