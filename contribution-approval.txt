@@ -1,0 +1,769 @@
+Delivered-To: newren@gmail.com
+Received: by 10.176.23.84 with SMTP id k20csp66416uaf;
+        Thu, 26 Apr 2018 14:05:01 -0700 (PDT)
+X-Google-Smtp-Source: AB8JxZq8YiJvwTJe5GgYOK1G0sE+f3OdYMI4R2OQL0wOF4dhH9JJKi7mZSjm6+umRmpWIVeUuj7m
+X-Received: by 2002:aed:2725:: with SMTP id n34-v6mr39042775qtd.36.1524776701683;
+        Thu, 26 Apr 2018 14:05:01 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1524776701; cv=none;
+        d=google.com; s=arc-20160816;
+        b=PhphAGM5o71NcMIyr3AdoT9ID4WiKrllmrtkRv07PJzZlW4J1ftsorBAhDCm17iBOG
+         g3+P9InP2X1IGPZL5nmSJSO3WfLslcBThjEleqPO77vjSrmyErWy1luWRq1cPW1A+AuR
+         oPpxEyuLH/eGWu9EMcLKzex2CztQuhtm7jwT9kQcNtohdu5i93X+bswH2/r0r/m4HwUc
+         zHUOc84WEKlHtaVHzSVMgfuogIYUY1erqpz4aWW20FEKye4XjVGBOXfhfQ615OQ7JxGi
+         TARWR4ppHeFHGfoN7R+fofij78wvTZcPzlrAq3j5EQHqVPrHrBD8pi4fe6Cy9LvNs7ep
+         fNyw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;
+        h=mime-version:spamdiagnosticmetadata:spamdiagnosticoutput
+         :content-language:accept-language:in-reply-to:references:message-id
+         :date:thread-index:thread-topic:subject:to:from:dkim-signature
+         :arc-authentication-results;
+        bh=ZiCInMwweDVltvsIzwUv/Qzi7a2aH7DEkrnvV0C4mnA=;
+        b=vpDBf0rR/waZrz0dEAUEHx7w3iebOgIGDZX13h2Xpd+W0xEUkiNdM4sbp9xefXSR1V
+         SvnpCeugEJhXk1kU4tOKiPs7lXpk6h5v+G3jnvkzhaZrUVb+iO7aqaQnroSglWx2Dvjb
+         DGO8t/zDNbAkGZAT6lAy37+Pl7ChzVm5yHydWaS3Vih1k3g2yZD6VC9zztsQXEG1MOWd
+         rvY6EdmFQnIQlidGMB6xImbGFpQNz2BDwJfELgXxnm0WPoOu5AdTeP5uCE22IFPrlaFM
+         +V/ujccJ9Gsm6dvusMkRa6yPf46PRrUrF/S3D5MYvYeW/JGg/faiHnKZS+Sddj/6Gdbt
+         0OdA==
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@palantirtech.onmicrosoft.com header.s=selector1-palantir-com header.b=JDCw+L8J;
+       spf=pass (google.com: domain of newren@palantir.com designates 67.231.148.48 as permitted sender) smtp.mailfrom=newren@palantir.com
+Return-Path: <newren@palantir.com>
+Received: from mx0a-00153501.pphosted.com (mx0a-00153501.pphosted.com. [67.231.148.48])
+        by mx.google.com with ESMTPS id q12si10384595qke.57.2018.04.26.14.05.01
+        for <newren@gmail.com>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Thu, 26 Apr 2018 14:05:01 -0700 (PDT)
+Received-SPF: pass (google.com: domain of newren@palantir.com designates 67.231.148.48 as permitted sender) client-ip=67.231.148.48;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@palantirtech.onmicrosoft.com header.s=selector1-palantir-com header.b=JDCw+L8J;
+       spf=pass (google.com: domain of newren@palantir.com designates 67.231.148.48 as permitted sender) smtp.mailfrom=newren@palantir.com
+Received: from pps.filterd (m0096528.ppops.net [127.0.0.1])
+	by mx0a-00153501.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w3QKverw012831
+	for <newren@gmail.com>; Thu, 26 Apr 2018 14:05:00 -0700
+Authentication-Results: palantir.com;
+	spf=softfail smtp.mailfrom=newren@palantir.com
+Received: from mxw1.palantir.com (mxw2.palantir.com [66.70.54.22])
+	by mx0a-00153501.pphosted.com with ESMTP id 2hg4b7ytqh-1
+	(version=TLSv1 cipher=ECDHE-RSA-AES256-SHA bits=256 verify=FAIL)
+	for <newren@gmail.com>; Thu, 26 Apr 2018 14:05:00 -0700
+Received: from EXDR01-WEST.YOJOE.local (10.160.10.135) by
+ EX03-WEST.YOJOE.local (10.160.10.136) with Microsoft SMTP Server (TLS) id
+ 14.3.319.2; Thu, 26 Apr 2018 14:05:00 -0700
+Received: from NAM03-DM3-obe.outbound.protection.outlook.com (207.46.163.15)
+ by mxw3.palantir.com (10.160.10.135) with Microsoft SMTP Server (TLS) id
+ 14.3.319.2; Thu, 26 Apr 2018 14:04:59 -0700
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=palantirtech.onmicrosoft.com; s=selector1-palantir-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version;
+ bh=ZiCInMwweDVltvsIzwUv/Qzi7a2aH7DEkrnvV0C4mnA=;
+ b=JDCw+L8JLWmLTnh+0y91QQpOMzfdiNnCjIbfyvkEjjjFDOvprwlBbSLYOqFpW3QCZoySnSIqtcWtWGofRMs5BtnoIzmOYn7cY2aDDRZmsAjc4d865SEVGbmLQ3e+gUZiWLylaNvUi6rAXksznsKAnk3LCmnIT3UY1Ujs2etV+R4=
+Received: from BY2PR18MB0421.namprd18.prod.outlook.com (10.163.193.154) by
+ BY2PR18MB0502.namprd18.prod.outlook.com (10.163.194.12) with Microsoft SMTP
+ Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384_P256) id
+ 15.20.715.18; Thu, 26 Apr 2018 21:04:57 +0000
+Received: from BY2PR18MB0421.namprd18.prod.outlook.com
+ ([fe80::f992:dc45:3fd2:7e5b]) by BY2PR18MB0421.namprd18.prod.outlook.com
+ ([fe80::f992:dc45:3fd2:7e5b%14]) with mapi id 15.20.0696.020; Thu, 26 Apr
+ 2018 21:04:57 +0000
+From: Elijah Newren <newren@palantir.com>
+To: "newren@gmail.com" <newren@gmail.com>
+Subject: Fw: Requesting (continued) approval to submit changes to git
+Thread-Topic: Requesting (continued) approval to submit changes to git
+Thread-Index: AQHTTeLzirm03pgsm0OnvJEZGFl0n6L94z0AgADDhgCAAT/Qi4ACA1aAgAEov/6BEZU+4A==
+Date: Thu, 26 Apr 2018 21:04:57 +0000
+Message-ID: <BY2PR18MB0421761105A7407A514ECD2CAD8E0@BY2PR18MB0421.namprd18.prod.outlook.com>
+References: <BY2PR18MB0248A96E1BCA4E4BF84B45F3AD440@BY2PR18MB0248.namprd18.prod.outlook.com>
+ <EB472506-03D3-4B00-B4A7-E2D4A6FF40A3@palantir.com>
+ <61EAED10-E594-4E22-96B2-3E4D99706E20@palantir.com>
+ <BY2PR18MB0248CC00617738BAF4EB159AAD5F0@BY2PR18MB0248.namprd18.prod.outlook.com>,<9AE99014-A009-435E-8469-C7FF0D84D5B8@palantir.com>,<BY2PR18MB024899D88B13D3704DC0E5BBAD5D0@BY2PR18MB0248.namprd18.prod.outlook.com>
+In-Reply-To: <BY2PR18MB024899D88B13D3704DC0E5BBAD5D0@BY2PR18MB0248.namprd18.prod.outlook.com>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+x-originating-ip: [63.251.248.156]
+x-ms-publictraffictype: Email
+x-microsoft-exchange-diagnostics: 1;BY2PR18MB0502;7:GBd7tlk1xJqmQpq++ieNDyI48DaEd4o5cTBAdYMz4hBFe+GqoRMO2nU3Y/Pm0HvVLexEWbnKNic50C9sx0gxM0q9Ix5gdLkrR8a1o1+FZYIlFrxS3ZmkwMQhrubu6JXBnTQjs1G7uZs4slz/nDD/7inLLmJRgwbIUHNyGUsbAdep4fHzbngfvorvCNEDseHYcsOpCpWxfo0dOceki1vLQm98gWP1Xbr9KMcY/iVDKY6kARFF6pP9YNgz0A+oOMgb
+x-ms-exchange-antispam-srfa-diagnostics: SOS;
+x-microsoft-antispam: UriScan:;BCL:0;PCL:0;RULEID:(7020095)(4652020)(5600026)(4534165)(7168020)(4627221)(201703031133081)(201702281549075)(2017052603328)(7153060)(7193020);SRVR:BY2PR18MB0502;
+x-ms-traffictypediagnostic: BY2PR18MB0502:
+x-microsoft-antispam-prvs: <BY2PR18MB050225320F3F21BF25BB5652AD8E0@BY2PR18MB0502.namprd18.prod.outlook.com>
+x-exchange-antispam-report-test: UriScan:(166708455590820)(85827821059158)(111885846020525)(5213294742642);
+x-exchange-antispam-report-cfa-test: BCL:0;PCL:0;RULEID:(8211001083)(6040522)(2401047)(5005006)(8121501046)(10201501046)(3231232)(944501410)(52105095)(3002001)(93006095)(93001095)(6041310)(20161123558120)(20161123564045)(20161123562045)(20161123560045)(201703131423095)(201702281528075)(20161123555045)(201703061421075)(201703061406153)(6072148)(201708071742011);SRVR:BY2PR18MB0502;BCL:0;PCL:0;RULEID:;SRVR:BY2PR18MB0502;
+x-forefront-prvs: 0654257CF5
+x-forefront-antispam-report: SFV:NSPM;SFS:(10009020)(396003)(346002)(366004)(39860400002)(39380400002)(376002)(199004)(189003)(25786009)(7736002)(316002)(93886005)(1361003)(39060400002)(733005)(105586002)(6436002)(106356001)(2900100001)(2351001)(97736004)(1411001)(19627405001)(3846002)(966005)(3660700001)(14454004)(6116002)(3280700002)(2473003)(229853002)(606006)(478600001)(2906002)(66066001)(6606003)(6916009)(53546011)(55236004)(55016002)(6506007)(7696005)(99286004)(8936002)(102836004)(2501003)(5250100002)(9686003)(26005)(6306002)(54896002)(186003)(81166006)(76176011)(5180700001)(5640700003)(86362001)(8676002)(81156014)(1730700003)(74316002)(68736007)(5660300001)(486006)(446003)(33656002)(476003)(53936002)(11346002)(236005)(473944003)(19627235001);DIR:OUT;SFP:1101;SCL:1;SRVR:BY2PR18MB0502;H:BY2PR18MB0421.namprd18.prod.outlook.com;FPR:;SPF:None;LANG:en;PTR:InfoNoRecords;A:1;MX:1;
+received-spf: None (protection.outlook.com: palantir.com does not designate
+ permitted sender hosts)
+x-microsoft-antispam-message-info: l9ZFLEbWqS4Y6i4TBi3bqKedEUQoNVHy4wHvx7nhBbQzd+TPBmGlFTwp38YouDzSPDPK8IkJDueGDXbvko7mwjCdlHgP4m0awCLL4WKWmN3rgR9Klr8MpXhl2dy1PMLrxuI22HdSxVotbWq5WI/c4RDiSbFZVhMxAjyuAOjFDC6qZtJ5nJpiBV6pGUb3dqck
+spamdiagnosticoutput: 1:99
+spamdiagnosticmetadata: NSPM
+Content-Type: multipart/alternative;
+	boundary="_000_BY2PR18MB0421761105A7407A514ECD2CAD8E0BY2PR18MB0421namp_"
+MIME-Version: 1.0
+X-MS-Office365-Filtering-Correlation-Id: 3a0e892c-1dda-46a0-e8a0-08d5abb95dc0
+X-MS-Exchange-CrossTenant-Network-Message-Id: 3a0e892c-1dda-46a0-e8a0-08d5abb95dc0
+X-MS-Exchange-CrossTenant-originalarrivaltime: 26 Apr 2018 21:04:57.2078
+ (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 76463010-5dd7-40c7-b509-7ce28ba39430
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: BY2PR18MB0502
+X-OriginatorOrg: palantir.com
+X-Proofpoint-SPF-Result: softfail
+X-Proofpoint-SPF-Record: v=spf1 include:spf-00153501.pphosted.com include:fspf0.palantir.com ~all
+X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10434:,, definitions=2018-04-26_08:,,
+ signatures=0
+
+--_000_BY2PR18MB0421761105A7407A514ECD2CAD8E0BY2PR18MB0421namp_
+Content-Type: text/plain; charset="Windows-1252"
+Content-Transfer-Encoding: quoted-printable
+
+Just filing a copy of this email thread so that (a) I have a record of the =
+approval, (b) I remember to follow all the rules (I might add new files in =
+the future).
+
+
+________________________________
+From: Elijah Newren
+Sent: Friday, November 3, 2017 1:30 PM
+To: Jason Lee
+Cc: Liam Elberty; Danielle Kramer; Open Source Approvals
+Subject: Re: Requesting (continued) approval to submit changes to git
+
+
+Sounds great, thanks!
+
+________________________________
+From: Jason Lee
+Sent: Thursday, November 2, 2017 6:27:00 PM
+To: Elijah Newren
+Cc: Liam Elberty; Danielle Kramer; Open Source Approvals
+Subject: Re: Requesting (continued) approval to submit changes to git
+
+
+Hey Elijah,
+
+
+
+Thanks for looking into the alternative project and for the information lin=
+ked below. It would be great to use the following licenses depending on the=
+ contribution:
+
+
+
+  *   For changes to existing code already licensed under GPLv2
+     *   Submit under GPLv2 license using the signed-off-by process in http=
+s://github.com/git/git/blob/master/Documentation/SubmittingPatches#L254,L29=
+4
+[https://avatars1.githubusercontent.com/u/18133?s=3D400&v=3D4]<https://gith=
+ub.com/git/git/blob/master/Documentation/SubmittingPatches#L254,L294>
+
+git/SubmittingPatches at master =B7 git/git =B7 GitHub<https://github.com/g=
+it/git/blob/master/Documentation/SubmittingPatches#L254,L294>
+github.com
+GitHub is where people build software. More than 27 million people use GitH=
+ub to discover, fork, and contribute to over 80 million projects.
+
+
+
+
+  *   For whole files/subsystems
+     *   Include a comment header to each file that states it=92s under the=
+ MIT license (and just let me know if you need the text for the comment blo=
+ck)
+     *   Include the MIT license file if it=92s a subsystem, e.g., https://=
+github.com/git/git/tree/master/sha1dc
+
+
+
+And for any GPLv2 licensed contributions made to git.git, feel free to add =
+your name/email to https://github.com/libgit2/libgit2/blob/master/git.git-a=
+uthors so that libgit2 can port over those changes too. (FYSA - https://git=
+hub.com/libgit2/libgit2/blob/master/CONTRIBUTING.md#porting-code-from-other=
+-open-source-projects notes that it=92s a pretty common case to port git.gi=
+t code over to libgit2).
+
+
+
+Happy to chat if there are any questions, thanks!
+
+Jason
+
+
+
+
+
+From: Elijah Newren <newren@palantir.com>
+Date: Wednesday, November 1, 2017 at 11:49 AM
+To: Jason Lee <jlee@palantir.com>
+Cc: Liam Elberty <lelberty@palantir.com>, Danielle Kramer <dkramer@palantir=
+.com>, Open Source Approvals <oss-approvals@palantir.com>
+Subject: Re: Requesting (continued) approval to submit changes to git
+
+
+
+Hi Jason,
+
+
+
+Apparently I mis-remembered the alternative licensing project and reason; i=
+t wasn't jgit, but libgit2 (meant to be more of a library for folks to prog=
+ram against than what core git provides), and the alternative license was G=
+PL with a linking exception (making it roughly LPGL-ish).  See https://publ=
+ic-inbox.org/git/20171101183829.mwoi7urka3hze3pm@sigill.intra.peff.net/ for=
+ details.
+
+
+
+So, contributions would just be under GPLv2, though it may make sense to ad=
+d our signoff to the libgit2 file to say our changes can be used in that pr=
+oject as well.
+
+
+
+Thanks,
+
+Elijah
+
+
+
+________________________________
+
+From: Jason Lee
+Sent: Tuesday, October 31, 2017 4:37 PM
+To: Elijah Newren
+Cc: Liam Elberty; Danielle Kramer; Open Source Approvals
+Subject: Re: Requesting (continued) approval to submit changes to git
+
+
+
+Hey Elijah,
+
+
+
+Confirming from the ninja-side that it=92s OK to contribute to upstream git=
+ under your personal email address. Before making any contributions, we sho=
+uld first figure out which license to apply to your contributions. Mind fin=
+ding out more details on the other more permissive licenses that have been =
+used in some git contributions?
+
+
+
+Thanks,
+
+Jason
+
+
+
+From: Danielle Kramer <dkramer@palantir.com>
+Date: Tuesday, October 31, 2017 at 4:58 AM
+To: Elijah Newren <newren@palantir.com>, Open Source Approvals <oss-approva=
+ls@palantir.com>
+Cc: Liam Elberty <lelberty@palantir.com>
+Subject: Re: Requesting (continued) approval to submit changes to git
+
+
+
+Completely fine from the business side, defer to ninjas on their review of =
+any specific concerns / which email address to use.
+
+
+
+From: Elijah Newren <newren@palantir.com>
+Date: Monday, October 30, 2017 at 4:50 PM
+To: Open Source Approvals <oss-approvals@palantir.com>
+Cc: Liam Elberty <lelberty@palantir.com>
+Subject: Requesting (continued) approval to submit changes to git
+
+
+
+Hi,
+
+
+
+I'm writing to ensure I still have approval[*] to submit fixes and improvem=
+ents to upstream git, the version control system we use at Palantir (in con=
+junction with gerrit, github, and previously stash and gitolite).
+
+
+
+git has no CLA; much like the linux kernel, they simply require a "Signed-O=
+ff-By" line in the commit message affirming the individual contributing has=
+ the right to submit the changes under the project's license; see https://g=
+ithub.com/git/git/blob/master/Documentation/SubmittingPatches#L254,L294
+
+
+
+The (primary) license, GPLv2, is found in the second paragraph of https://g=
+ithub.com/git/git/blob/master/README.md.  Some contributions are under a mo=
+re permissive license -- but still GPLv2-compatible -- in particular to all=
+ow re-use by other projects such as jgit (which we also use).  Would you li=
+ke me to try to find out details about the more permissive license(s) and c=
+ontribute under one of those, or just use the default GPLv2 for my contribu=
+tions?
+
+
+
+The immediate contributions I want to submit consist of a lot of improvemen=
+ts surrounding cherry-picking and merging between long lived branches of a =
+large repository with lots of renames.  The reason that's a problem for us,=
+ is pgdev is large, has lots of branches (usually customer-specific), has h=
+ad multiple high-level directories renamed (which appear to git as each fil=
+e within the directory being renamed).  Between issues with arbitrary renam=
+e limits, lack of directory rename detection, and the performance of detect=
+ing renames all add up to making it much harder for gotham developers to po=
+rt changes.  It's hard to predict what future changes I might want to contr=
+ibute, but I can't imagine any git changes being related to any customer wo=
+rk, they are about as far from export controlled concerns as one can reason=
+ably get, etc.
+
+
+
+Is there a preference for whether I contribute these changes as newren@pala=
+ntir.com or as newren@gmail.com?  They know me by the latter email address,=
+ but that's a pretty minor point so it's more a question of what Palantir w=
+ould prefer.
+
+
+
+Is there anything else you need from me?
+
+
+
+Thanks,
+
+Elijah
+
+
+
+
+
+[*] I already received approval to contribute fixes and features to git 4.5=
+ years ago.  I was told I was predominantly being hired for the purpose of =
+contributing fixes and improvements to gerrit and git and associated projec=
+ts in a way that would help Palantir, and talked to my lead at the time and=
+ one of the Legal Ninjas.  However, things changed quickly, I was pulled in=
+to other projects, had several lead changes, and the original intent was ki=
+nd of lost. Since my approvals pre-dated the open-source-approvals process,=
+ my last lead requested I email open-source-approvals just to make sure thi=
+ngs are tracked appropriately.  I delayed for a while, because I wasn't wor=
+king on any contributions at that time, but I am now.
+
+--_000_BY2PR18MB0421761105A7407A514ECD2CAD8E0BY2PR18MB0421namp_
+Content-Type: text/html; charset="Windows-1252"
+Content-Transfer-Encoding: quoted-printable
+
+<html>
+<head>
+<meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3DWindows-1=
+252">
+<style type=3D"text/css" style=3D"display:none;"><!-- P {margin-top:0;margi=
+n-bottom:0;} --></style>
+</head>
+<body dir=3D"ltr">
+<div id=3D"divtagdefaultwrapper" style=3D"font-size:12pt;color:#000000;font=
+-family:Calibri,Helvetica,sans-serif;" dir=3D"ltr">
+<p style=3D"margin-top:0;margin-bottom:0">Just filing a copy of this email =
+thread so that (a) I have a record of the approval, (b) I remember to follo=
+w all the rules (I might add new files in the future).</p>
+<br>
+<br>
+<div style=3D"color: rgb(0, 0, 0);">
+<hr style=3D"display:inline-block;width:98%" tabindex=3D"-1">
+<div id=3D"divRplyFwdMsg" dir=3D"ltr"><font style=3D"font-size:11pt" face=
+=3D"Calibri, sans-serif" color=3D"#000000"><b>From:</b> Elijah Newren<br>
+<b>Sent:</b> Friday, November 3, 2017 1:30 PM<br>
+<b>To:</b> Jason Lee<br>
+<b>Cc:</b> Liam Elberty; Danielle Kramer; Open Source Approvals<br>
+<b>Subject:</b> Re: Requesting (continued) approval to submit changes to gi=
+t</font>
+<div>&nbsp;</div>
+</div>
+<div dir=3D"ltr">
+<div id=3D"x_divtagdefaultwrapper" dir=3D"ltr" style=3D"font-size:12pt; col=
+or:#000000; font-family:Calibri,Helvetica,sans-serif">
+<p>Sounds great, thanks!<br>
+</p>
+</div>
+<hr style=3D"display:inline-block; width:98%" tabindex=3D"-1">
+<div id=3D"x_divRplyFwdMsg" dir=3D"ltr"><font style=3D"font-size:11pt" face=
+=3D"Calibri, sans-serif" color=3D"#000000"><b>From:</b> Jason Lee<br>
+<b>Sent:</b> Thursday, November 2, 2017 6:27:00 PM<br>
+<b>To:</b> Elijah Newren<br>
+<b>Cc:</b> Liam Elberty; Danielle Kramer; Open Source Approvals<br>
+<b>Subject:</b> Re: Requesting (continued) approval to submit changes to gi=
+t</font>
+<div>&nbsp;</div>
+</div>
+<style>=0A=
+<!--=0A=
+@font-face=0A=
+	{font-family:"Courier New"}=0A=
+@font-face=0A=
+	{font-family:Wingdings}=0A=
+@font-face=0A=
+	{font-family:"Cambria Math"}=0A=
+@font-face=0A=
+	{font-family:"?? ??"}=0A=
+@font-face=0A=
+	{font-family:Calibri}=0A=
+p.x_x_MsoNormal, li.x_x_MsoNormal, div.x_x_MsoNormal=0A=
+	{margin:0in;=0A=
+	margin-bottom:.0001pt;=0A=
+	font-size:11.0pt;=0A=
+	font-family:"Calibri",sans-serif}=0A=
+a:x_x_link, span.x_x_MsoHyperlink=0A=
+	{color:blue;=0A=
+	text-decoration:underline}=0A=
+a:x_x_visited, span.x_x_MsoHyperlinkFollowed=0A=
+	{color:purple;=0A=
+	text-decoration:underline}=0A=
+p.x_x_MsoListParagraph, li.x_x_MsoListParagraph, div.x_x_MsoListParagraph=
+=0A=
+	{margin-top:0in;=0A=
+	margin-right:0in;=0A=
+	margin-bottom:0in;=0A=
+	margin-left:.5in;=0A=
+	margin-bottom:.0001pt;=0A=
+	font-size:11.0pt;=0A=
+	font-family:"Calibri",sans-serif}=0A=
+span.x_x_EmailStyle18=0A=
+	{font-family:"Calibri",sans-serif;=0A=
+	color:windowtext}=0A=
+span.x_x_msoIns=0A=
+	{text-decoration:underline;=0A=
+	color:teal}=0A=
+.x_x_MsoChpDefault=0A=
+	{font-size:10.0pt}=0A=
+@page WordSection1=0A=
+	{margin:1.0in 1.0in 1.0in 1.0in}=0A=
+ol=0A=
+	{margin-bottom:0in}=0A=
+ul=0A=
+	{margin-bottom:0in}=0A=
+-->=0A=
+</style>
+<div style=3D"background-color:white" lang=3D"EN-US">
+<div class=3D"x_x_WordSection1">
+<p class=3D"x_x_MsoNormal">Hey Elijah,</p>
+<p class=3D"x_x_MsoNormal">&nbsp;</p>
+<p class=3D"x_x_MsoNormal">Thanks for looking into the alternative project =
+and for the information linked below. It would be great to use the followin=
+g licenses depending on the contribution:</p>
+<p class=3D"x_x_MsoNormal">&nbsp;</p>
+<ul style=3D"margin-top:0in" type=3D"disc">
+<li class=3D"x_x_MsoListParagraph" style=3D"margin-left:0in">For changes to=
+ existing code already licensed under GPLv2
+<ul style=3D"margin-top:0in" type=3D"circle">
+<li class=3D"x_x_MsoListParagraph" style=3D"margin-left:0in">Submit under G=
+PLv2 license using the signed-off-by process in
+<a href=3D"https://github.com/git/git/blob/master/Documentation/SubmittingP=
+atches#L254,L294" id=3D"LPlnk984028" previewremoved=3D"true">
+https://github.com/git/git/blob/master/Documentation/SubmittingPatches#L254=
+,L294</a> &nbsp;
+<div id=3D"LPBorder_GT_15247765286760.1621521172363456" style=3D"margin-bot=
+tom: 20px; overflow: auto; width: 100%; text-indent: 0px;">
+<table id=3D"LPContainer_15247765286740.38739546909123745" style=3D"width: =
+90%; background-color: rgb(255, 255, 255); position: relative; overflow: au=
+to; padding-top: 20px; padding-bottom: 20px; margin-top: 20px; border-top: =
+1px dotted rgb(200, 200, 200); border-bottom: 1px dotted rgb(200, 200, 200)=
+;" role=3D"presentation" cellspacing=3D"0">
+<tbody>
+<tr style=3D"border-spacing: 0px;" valign=3D"top">
+<td id=3D"ImageCell_15247765286740.9979429659839519" style=3D"width: 250px;=
+ position: relative; display: table-cell; padding-right: 20px;" colspan=3D"=
+1">
+<div id=3D"LPImageContainer_15247765286740.888789060371238" style=3D"backgr=
+ound-color: rgb(255, 255, 255); height: 250px; position: relative; margin: =
+auto; display: table; width: 250px;">
+<a id=3D"LPImageAnchor_15247765286740.23429268502003475" style=3D"display: =
+table-cell; text-align: center;" href=3D"https://github.com/git/git/blob/ma=
+ster/Documentation/SubmittingPatches#L254,L294" target=3D"_blank"><img styl=
+e=3D"display: inline-block; max-width: 250px; max-height: 250px; height: 25=
+0px; width: 250px; border-width: 0px; vertical-align: bottom;" id=3D"LPThum=
+bnailImageID_15247765286740.29722031680869154" width=3D"250" height=3D"250"=
+ src=3D"https://avatars1.githubusercontent.com/u/18133?s=3D400&amp;v=3D4"><=
+/a></div>
+</td>
+<td id=3D"TextCell_15247765286740.552960116428869" style=3D"vertical-align:=
+ top; position: relative; padding: 0px; display: table-cell;" colspan=3D"2"=
+>
+<div id=3D"LPRemovePreviewContainer_15247765286740.9865826423573538"></div>
+<div id=3D"LPTitle_15247765286740.7847415818076267" style=3D"top: 0px; colo=
+r: rgb(0, 120, 215); font-weight: 400; font-size: 21px; font-family: &quot;=
+wf_segoe-ui_light&quot;, &quot;Segoe UI Light&quot;, &quot;Segoe WP Light&q=
+uot;, &quot;Segoe UI&quot;, &quot;Segoe WP&quot;, Tahoma, Arial, sans-serif=
+; line-height: 21px;">
+<a id=3D"LPUrlAnchor_15247765286760.8124434870944727" style=3D"text-decorat=
+ion: none;" href=3D"https://github.com/git/git/blob/master/Documentation/Su=
+bmittingPatches#L254,L294" target=3D"_blank">git/SubmittingPatches at maste=
+r =B7 git/git =B7 GitHub</a></div>
+<div id=3D"LPMetadata_15247765286760.5169537839493628" style=3D"margin: 10p=
+x 0px 16px; color: rgb(102, 102, 102); font-weight: 400; font-family: &quot=
+;wf_segoe-ui_normal&quot;, &quot;Segoe UI&quot;, &quot;Segoe WP&quot;, Taho=
+ma, Arial, sans-serif; font-size: 14px; line-height: 14px;">
+github.com</div>
+<div id=3D"LPDescription_15247765286760.7696833601625669" style=3D"display:=
+ block; color: rgb(102, 102, 102); font-weight: 400; font-family: &quot;wf_=
+segoe-ui_normal&quot;, &quot;Segoe UI&quot;, &quot;Segoe WP&quot;, Tahoma, =
+Arial, sans-serif; font-size: 14px; line-height: 20px; max-height: 100px; o=
+verflow: hidden;">
+GitHub is where people build software. More than 27 million people use GitH=
+ub to discover, fork, and contribute to over 80 million projects.</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</li></ul>
+</li></ul>
+<p class=3D"x_x_MsoNormal">&nbsp;</p>
+<ul style=3D"margin-top:0in" type=3D"disc">
+<li class=3D"x_x_MsoListParagraph" style=3D"margin-left:0in">For whole file=
+s/subsystems
+<ul style=3D"margin-top:0in" type=3D"circle">
+<li class=3D"x_x_MsoListParagraph" style=3D"margin-left:0in">Include a comm=
+ent header to each file that states it=92s under the MIT license (and just =
+let me know if you need the text for the comment block)</li><li class=3D"x_=
+x_MsoListParagraph" style=3D"margin-left:0in">Include the MIT license file =
+if it=92s a subsystem, e.g.,
+<a href=3D"https://github.com/git/git/tree/master/sha1dc" id=3D"LPlnk564530=
+" previewremoved=3D"true">
+https://github.com/git/git/tree/master/sha1dc</a> </li></ul>
+</li></ul>
+<p class=3D"x_x_MsoNormal">&nbsp;</p>
+<p class=3D"x_x_MsoNormal">And for any GPLv2 licensed contributions made to=
+ git.git, feel free to add your name/email to
+<a href=3D"https://github.com/libgit2/libgit2/blob/master/git.git-authors" =
+id=3D"LPlnk425869" previewremoved=3D"true">
+https://github.com/libgit2/libgit2/blob/master/git.git-authors</a> so that =
+libgit2 can port over those changes too. (FYSA -
+<a href=3D"https://github.com/libgit2/libgit2/blob/master/CONTRIBUTING.md#p=
+orting-code-from-other-open-source-projects" id=3D"LPlnk316254" previewremo=
+ved=3D"true">
+https://github.com/libgit2/libgit2/blob/master/CONTRIBUTING.md#porting-code=
+-from-other-open-source-projects</a> notes that it=92s a pretty common case=
+ to port git.git code over to libgit2).
+</p>
+<p class=3D"x_x_MsoNormal">&nbsp;</p>
+<p class=3D"x_x_MsoNormal">Happy to chat if there are any questions, thanks=
+!</p>
+<p class=3D"x_x_MsoNormal">Jason</p>
+<p class=3D"x_x_MsoNormal">&nbsp;</p>
+<span style=3D"color:#1F497D"></span><span style=3D"font-size:12.0pt; color=
+:black"></span>
+<p class=3D"x_x_MsoNormal">&nbsp;</p>
+<div style=3D"border:none; border-top:solid #B5C4DF 1.0pt; padding:3.0pt 0i=
+n 0in 0in">
+<p class=3D"x_x_MsoNormal"><b><span style=3D"font-size:12.0pt; color:black"=
+>From: </span>
+</b><span style=3D"font-size:12.0pt; color:black">Elijah Newren &lt;newren@=
+palantir.com&gt;<br>
+<b>Date: </b>Wednesday, November 1, 2017 at 11:49 AM<br>
+<b>To: </b>Jason Lee &lt;jlee@palantir.com&gt;<br>
+<b>Cc: </b>Liam Elberty &lt;lelberty@palantir.com&gt;, Danielle Kramer &lt;=
+dkramer@palantir.com&gt;, Open Source Approvals &lt;oss-approvals@palantir.=
+com&gt;<br>
+<b>Subject: </b>Re: Requesting (continued) approval to submit changes to gi=
+t</span></p>
+</div>
+<div>
+<p class=3D"x_x_MsoNormal">&nbsp;</p>
+</div>
+<div id=3D"x_x_divtagdefaultwrapper">
+<p><span style=3D"font-size:12.0pt; color:black">Hi Jason,</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">&nbsp;</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">Apparently I mis-remembere=
+d the alternative licensing project and reason; it wasn't jgit, but libgit2=
+ (meant to be more of a library for folks to program against than what core=
+ git provides), and the alternative
+ license was GPL with a linking exception (making it roughly LPGL-ish).&nbs=
+p; See <a href=3D"https://public-inbox.org/git/20171101183829.mwoi7urka3hze=
+3pm@sigill.intra.peff.net/" id=3D"LPlnk331470" previewremoved=3D"true">
+https://public-inbox.org/git/20171101183829.mwoi7urka3hze3pm@sigill.intra.p=
+eff.net/</a> for details.</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">&nbsp;</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">So, contributions would ju=
+st be under GPLv2, though it may make sense to add our signoff to the libgi=
+t2 file to say our changes can be used in that project as well.</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">&nbsp;</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">Thanks,</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">Elijah</span></p>
+<p class=3D"x_x_MsoNormal" style=3D"margin-bottom:12.0pt"><span style=3D"fo=
+nt-size:12.0pt; color:black">&nbsp;</span></p>
+<div>
+<div class=3D"x_x_MsoNormal" style=3D"text-align:center" align=3D"center"><=
+span style=3D"font-size:12.0pt; color:black">
+<hr width=3D"98%" size=3D"2" align=3D"center">
+</span></div>
+<div id=3D"x_x_divRplyFwdMsg">
+<p class=3D"x_x_MsoNormal"><b><span style=3D"color:black">From:</span></b><=
+span style=3D"color:black"> Jason Lee<br>
+<b>Sent:</b> Tuesday, October 31, 2017 4:37 PM<br>
+<b>To:</b> Elijah Newren<br>
+<b>Cc:</b> Liam Elberty; Danielle Kramer; Open Source Approvals<br>
+<b>Subject:</b> Re: Requesting (continued) approval to submit changes to gi=
+t</span><span style=3D"font-size:12.0pt; color:black">
+</span></p>
+<div>
+<p class=3D"x_x_MsoNormal"><span style=3D"font-size:12.0pt; color:black">&n=
+bsp;</span></p>
+</div>
+</div>
+<div>
+<div>
+<p><span style=3D"color:black">Hey Elijah,</span><span style=3D"font-size:1=
+2.0pt; font-family:&quot;Times New Roman&quot;,serif; color:black"></span><=
+/p>
+<p><span style=3D"color:black">&nbsp;</span><span style=3D"font-size:12.0pt=
+; font-family:&quot;Times New Roman&quot;,serif; color:black"></span></p>
+<p><span style=3D"color:black">Confirming from the ninja-side that it=92s O=
+K to contribute to upstream git under your personal email address. Before m=
+aking any contributions, we should first figure out which license to apply =
+to your contributions. Mind finding
+ out more details on the other more permissive licenses that have been used=
+ in some git contributions?</span><span style=3D"font-size:12.0pt; font-fam=
+ily:&quot;Times New Roman&quot;,serif; color:black"></span></p>
+<p><span style=3D"color:black">&nbsp;</span><span style=3D"font-size:12.0pt=
+; font-family:&quot;Times New Roman&quot;,serif; color:black"></span></p>
+<p><span style=3D"color:black">Thanks,</span><span style=3D"font-size:12.0p=
+t; font-family:&quot;Times New Roman&quot;,serif; color:black"></span></p>
+<p><span style=3D"color:black">Jason</span><span style=3D"font-size:12.0pt;=
+ font-family:&quot;Times New Roman&quot;,serif; color:black"></span></p>
+<p><span style=3D"color:black">&nbsp;</span><span style=3D"font-size:12.0pt=
+; font-family:&quot;Times New Roman&quot;,serif; color:black"></span></p>
+<span style=3D"color:black"></span><span style=3D"font-size:12.0pt; font-fa=
+mily:&quot;Times New Roman&quot;,serif; color:black"></span>
+<div style=3D"border:none; border-top:solid #B5C4DF 1.0pt; padding:3.0pt 0i=
+n 0in 0in">
+<p><b><span style=3D"font-size:12.0pt; font-family:&quot;Times New Roman&qu=
+ot;,serif; color:black">From:
+</span></b><span style=3D"font-size:12.0pt; font-family:&quot;Times New Rom=
+an&quot;,serif; color:black">Danielle Kramer &lt;dkramer@palantir.com&gt;<b=
+r>
+<b>Date: </b>Tuesday, October 31, 2017 at 4:58 AM<br>
+<b>To: </b>Elijah Newren &lt;newren@palantir.com&gt;, Open Source Approvals=
+ &lt;oss-approvals@palantir.com&gt;<br>
+<b>Cc: </b>Liam Elberty &lt;lelberty@palantir.com&gt;<br>
+<b>Subject: </b>Re: Requesting (continued) approval to submit changes to gi=
+t</span></p>
+</div>
+<div>
+<p><span style=3D"font-family:&quot;Times New Roman&quot;,serif; color:blac=
+k">&nbsp;</span><span style=3D"font-size:12.0pt; font-family:&quot;Times Ne=
+w Roman&quot;,serif; color:black"></span></p>
+</div>
+<p><span style=3D"color:black">Completely fine from the business side, defe=
+r to ninjas on their review of any specific concerns / which email address =
+to use.</span><span style=3D"font-size:12.0pt; font-family:&quot;Times New =
+Roman&quot;,serif; color:black"></span></p>
+<p><span style=3D"color:black">&nbsp;</span><span style=3D"font-size:12.0pt=
+; font-family:&quot;Times New Roman&quot;,serif; color:black"></span></p>
+<div style=3D"border:none; border-top:solid #B5C4DF 1.0pt; padding:3.0pt 0i=
+n 0in 0in">
+<p><b><span style=3D"font-size:12.0pt; color:black">From: </span></b><span =
+style=3D"font-size:12.0pt; color:black">Elijah Newren &lt;newren@palantir.c=
+om&gt;<br>
+<b>Date: </b>Monday, October 30, 2017 at 4:50 PM<br>
+<b>To: </b>Open Source Approvals &lt;oss-approvals@palantir.com&gt;<br>
+<b>Cc: </b>Liam Elberty &lt;lelberty@palantir.com&gt;<br>
+<b>Subject: </b>Requesting (continued) approval to submit changes to git</s=
+pan><span style=3D"font-size:12.0pt; font-family:&quot;Times New Roman&quot=
+;,serif; color:black"></span></p>
+</div>
+<div>
+<p><span style=3D"font-size:12.0pt; font-family:&quot;Times New Roman&quot;=
+,serif; color:black">&nbsp;</span></p>
+</div>
+<div id=3D"x_x_divtagdefaultwrapper">
+<div id=3D"x_x_divtagdefaultwrapper">
+<p><span style=3D"font-size:12.0pt; color:black">Hi,</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">&nbsp;</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">I'm writing to ensure I st=
+ill have approval[*] to submit fixes and improvements to upstream git, the =
+version control system we use at Palantir (in conjunction with gerrit, gith=
+ub, and previously stash and gitolite).&nbsp;
+</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">&nbsp;</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">git has no CLA; much like =
+the linux kernel,&nbsp;they simply require a &quot;Signed-Off-By&quot; line=
+ in the commit message affirming the individual contributing has the right =
+to submit the changes under the project's license;
+ see <a href=3D"https://github.com/git/git/blob/master/Documentation/Submit=
+tingPatches#L254,L294" id=3D"LPlnk39070" previewremoved=3D"true">
+https://github.com/git/git/blob/master/Documentation/SubmittingPatches#L254=
+,L294</a></span></p>
+<p><span style=3D"font-size:12.0pt; color:black">&nbsp;</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">The (primary) license, GPL=
+v2, is found in the second paragraph of
+<a href=3D"https://github.com/git/git/blob/master/README.md" id=3D"LPlnk597=
+29" previewremoved=3D"true">
+https://github.com/git/git/blob/master/README.md</a>.&nbsp; Some contributi=
+ons are under a more permissive license -- but still GPLv2-compatible -- in=
+ particular to allow re-use by other projects such as jgit (which we also u=
+se). &nbsp;Would you like me to try to find
+ out details about the more permissive license(s) and contribute under one =
+of those, or just use the default GPLv2 for my contributions?</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">&nbsp;</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">The immediate contribution=
+s I want to submit consist of a lot of improvements surrounding cherry-pick=
+ing and merging between long lived branches of a large repository with lots=
+ of renames.&nbsp; The reason that's a
+ problem for us, is pgdev is large, has lots of branches (usually customer-=
+specific), has had multiple high-level directories renamed (which appear to=
+ git as each file within the directory being renamed).&nbsp; Between issues=
+ with arbitrary rename limits, lack of
+ directory rename detection, and the performance of detecting renames all a=
+dd up to making it much harder for gotham developers to port changes.&nbsp;=
+ It's hard to predict what future changes I might want to contribute, but I=
+ can't imagine any git changes being
+ related to any customer work, they are about as far from export controlled=
+ concerns as one can reasonably get, etc.</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">&nbsp;</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">Is there a preference for =
+whether I contribute these changes as newren@palantir.com or as newren@gmai=
+l.com?&nbsp; They know me by the latter email address, but that's a pretty =
+minor point so it's more a question of
+ what Palantir would prefer.</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">&nbsp;</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">Is there anything else you=
+ need from me?</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">&nbsp;</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">Thanks,</span></p>
+<p><span style=3D"font-size:12.0pt; color:black">Elijah</span></p>
+</div>
+<div>
+<p><span style=3D"font-size:12.0pt; color:black">&nbsp;</span><span style=
+=3D"font-size:12.0pt; font-family:&quot;Times New Roman&quot;,serif; color:=
+black"></span></p>
+</div>
+<div>
+<p><span style=3D"font-size:12.0pt; color:black">&nbsp;</span><span style=
+=3D"font-size:12.0pt; font-family:&quot;Times New Roman&quot;,serif; color:=
+black"></span></p>
+<p><span style=3D"font-size:12.0pt; color:black">[*] I already received app=
+roval to contribute fixes and features to git 4.5 years ago.&nbsp; I was to=
+ld I was predominantly being hired for the purpose of contributing fixes an=
+d improvements to gerrit and git and associated
+ projects in a way that would help Palantir, and talked to my lead at the t=
+ime and one of the Legal Ninjas.&nbsp; However, things changed quickly, I w=
+as pulled into other projects, had several lead changes, and the original i=
+ntent was kind of lost.&nbsp;Since my approvals
+ pre-dated the open-source-approvals process, my last lead requested I emai=
+l open-source-approvals just to make sure things are tracked appropriately.=
+&nbsp; I delayed for a while, because I wasn't working on any contributions=
+ at that time, but I am now.</span></p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
+
+--_000_BY2PR18MB0421761105A7407A514ECD2CAD8E0BY2PR18MB0421namp_--
