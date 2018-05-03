@@ -1,0 +1,172 @@
+* How basic three-way merge works
+  * Example: simple file differing on one line in two different branches
+  * Correct resolution depends on version of file in merge-base
+  * Merge can resolve to either side, or conflict markers
+  * Makes more sense to coalesce nearby changed lines into one bigger conflict
+  * Merge result will usually have combinations of edits from both sides
+  * -Xours and -Xtheirs will also have combinations from both sides
+  * Merged result is written out to the file
+* What assumptions is this based on?
+  * Basic assumptions (which all go out the window)
+    * Three versions of files involved (uhm...no more than 3...uh, doh.)
+    * No nesting of conflict markers (ha!)
+    * Path is writable (whoops)
+    * Conflicts representable on disk (oops: modify/delete, D/F, submodule/file,
+      submodule/directory, submodule/submodule, rename/rename(1to2), directory
+      rename detection issues)
+  * Critiques of three-way merge idea
+    * Line-based diffing is relevant; issues:
+      * journal, documentation, word-based articles
+    * Context region; issues:
+      * what's the correct size for the context region?  too small?  too big?
+      * example: import/include statements -- context lines irrelevant
+    * No point trying to discern semantic content; leave to the user; issues:
+      * one branch adds call to a function, another adds an argument to it
+    * Encoding the same (merge.renormalize); issues:
+      * ASCII vs. EBCDIC (yeah, sure)
+      * CR vs. CRLF (happens...)
+      * whitespace normalization?
+      * unicode normalization?
+      * other programmatic modifications -- indentation, etc.?
+    * Intermediate history isn't relevant; issues:
+      * "fix" applied on both sides, then reverted on one side because it's
+        harmful...
+      * same fix on both sides, extra fixes on other side in same region =>
+        conflicts
+      * however, three-way merge is hard enough for people to understand.
+        Explaining a conflict that arises from intermediate history might
+        become truly baffling
+  * Applicability of three-way merge idea
+    * Normal files; counter-examples:
+      * binary
+      * symlinks
+      * submodules
+    * Files are actually related; counter-examples:
+      * simple rename/modify (use O,A,B notation to show modify/delete+add)
+      * one renamed away, with new file in place
+      * one file deleted, new file now in its place
+      * swap rename (a->b, b->a)
+      * (This could get really complicated, but git doesn't do break detection
+         for merges, so not relevant right now)
+    * Relevant content does not move between files; counter-examples:
+      * git handles this in blame, but not for merges.  At least not yet.
+    * Merge-base exists; counter-examples:
+      * merging independent repositories -- do two-way merge
+    * Merge-base is unique; counter-examples:
+      * lots; see git.git and linux.git.  unlikely with central server and
+        merge-to-mainline workflow
+      * follow-on assumption: merge-base can be constructed by just merging
+        the others together (counter-examples: conflicts, including crazy types)
+      * follow-on assumption: we can find something meaningful to use as a
+        merge-base and construct it as a tree (maybe...)
+    * Three versions of file exist; counter-examples:
+      * one version
+        * existed in base & deleted on both sides
+        * new file unique to one side (possible D/F conflict...)
+      * two versions
+        * didn't exist in base; add/add conflict unless identical
+        * did exist in base: modify/delete unless unmodified
+      * more than three versions: (see combination effects)
+    * No file renames involved; counter-examples:
+      * whoo, boy, this is a big can of worms
+  * Implementation-related assumptions (memory, compute time, user convenience)
+    * Dirty changes
+    * Recursive in merge-bases, but not to submodules?
+    * writes intermediate file-merges to object store immediately
+    * Rename heuristics (rename limit, no break detection, 50% similarity,
+      best match)
+  * Combination effects and assumptions
+    * Path is writable; counter-examples:
+      * dirty changes
+      * untracked files in the way of renames or adds or modify/delete
+      * rename/rename(2to1) getting un-renamed?
+      * D/F conflicts from e.g. add/add, rename/add, dirty delete + untracked
+    * Nested conflict markers?
+      * rename/add
+      * rename/rename(2to1)
+      * recursive merges
+    * More than three versions of file involved
+      * rename/add
+      * rename/rename(2to1)
+      * rename/rename(Nto1)
+
+* Background, implicitly assume:
+  * normal (text) files
+  * same "encoding"
+  * merge base exists and is unique
+  * no renames or rewrites
+  * code snippets do not move between files
+* Assuming same files exist in all revisions, what kind of conflicts can we get?
+  * content conflicts
+  * dirty changes in the way
+  * dirty delete causing untracked directory to be in the way
+  * (non-normal file problems -- binaries, symlinks, submodules)
+* Assuming we can delete files, what additional kind of conflicts?
+  * modify/delete
+  * untracked file in the way of content (modify/delete) we want to place there
+  * untracked directory in the way
+* Assuming we can add new entries, what additional kinds of conflicts?
+  * add/add
+  * directory/file
+  * submodule/file
+  * submodule/directory
+* What about no merge-base?
+  * Turns everything into add/add conflict
+* What about recursiveness?
+  * how to forcibly resolve?
+    * content conflict
+    * modify/delete (take merge-base)
+    * add/add (two-way merge)
+    * directory/file, submodule/file, submodule/directory (rename file and
+      hope for the best)
+    * non-normal files (binary, symlinks, submodules; take merge-base)
+  * nested conflict markers become possible
+* What if we add renames?
+  * rename/delete (no modification necessary; only two versions of file)
+  * rename/add (now four versions of file)
+  * rename/add/delete
+  * rename/rename(1to2)
+  * rename/rename(1to2)/add/add
+  * rename/rename(2to1) (six versions of file)
+  * rename/rename(2to1)/delete/delete
+  * chains of rename/rename(1to2) and rename/rename(2to1)
+  * also: nested conflict markers for rename/{add,rename(2to1)}, w/o recursion
+* What about recursiveness?
+  * how to forcibly resolve for each one of the above?
+    * undo rename, go back to merge base version of file
+      * rename/delete
+      * rename/add/delete (leave add where it was)
+      * rename/rename(2to1)/delete/delete
+    * do three-way merge on renames, then un-rename (leave other files alone)
+      * rename/add
+      * rename/rename(1to2)
+      * rename/rename(1to2)/add/add
+      * rename/rename(2to1)
+* What if we add directory renames?
+  * pick out more examples from my testcases...
+  * add/add/add (single side conflict, plus conflict from other side)
+  * directory/file/file (single side conflict, again)
+  * rename/rename/rename(1to3) (where do you stick this in the index?)
+  * transitive renames
+  * n-fold transitive rename
+  * rename/rename(Nto1) (N*3 versions of file)
+
+
+* Tools to mention to folks
+  * git diff --check
+  * git ls-files -u
+  * git show :<stage>:<filename>
+  * git checkout [--ours|--theirs|-m|--conflict=diff3] <filename>
+  * git diff [--base|--ours|--theirs]
+  * git log --merge --left-right -p
+
+
+* merge flags of note
+  --[no-]ff[-only]
+  --allow-unrelated-histories?
+  -s {ours, resolve, recursive, ort, octopus, subtree}
+  -X
+    ours|theirs
+    diff-algorithm
+    ignore.*
+    renormalize
