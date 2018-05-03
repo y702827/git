@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -o pipefail
+
+cd $(git rev-parse --show-toplevel)
+if [[ "$1" = "dbg" ]]; then
+  time make CFLAGS="-Wall -g" -j8 | { grep -v -e Manifying -e SUBDIR -e BUILTIN -e LN/CP -e GEN -e LINK..... || true; }
+  exit $?
+fi
+if [[ "$1" = "doc" ]]; then
+  time make -C Documentation/ DESTDIR=../ mandir=bin-wrappers install
+  exit $?
+fi
+time make DEVELOPER=1 -j8 | { grep -v -e Manifying -e SUBDIR -e BUILTIN -e LN/CP -e GEN -e LINK..... || true; }

@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# This script is basically shorthand for
+#   git diff --no-index $FILE1 $FILE2
+# except that it works correctly when $FILE1 and $FILE2 involve process
+# substitution, i.e when it looks like
+#   mydiff <(somecmd | grep foobar) <(anothercmd)
+
+if [ $# -lt 2 ]; then
+  echo "Usage: $0 [options] <file1> <file2>" 1>&2
+  exit 1
+fi
+
+num=$(($#-2))
+args=${@:1:$num}
+shift $num
+tmp1=$1
+if [ -h $1 ]; then
+  tmp1=$(mktemp)
+  cat $1 >$tmp1
+fi
+tmp2=$2
+if [ -h $2 ]; then
+  tmp2=$(mktemp)
+  cat $2 >$tmp2
+fi
+git diff --no-index ${args} $tmp1 $tmp2
+
+test -h "$1" && rm $tmp1
+test -h "$2" && rm $tmp2

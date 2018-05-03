@@ -1,0 +1,49 @@
+See Documentation/SubmittingPatches and the EXAMPLES section of
+git-send-email(1), the latter of which specifies setting up
+using gmail smtp and command line args for format-patch and
+send-email.  Also, the end of this file...
+
+# Testing before submission:
+  git rebase -i --autosquash --exec 'build && dotests' origin/master
+  ~/floss/linux/scripts/checkpatch.pl --no-tree -g origin/master..HEAD
+
+# Example of creating the patch series
+# (remember to change the range!)
+  git format-patch                               \
+    --cover-letter                               \
+    --subject-prefix="PATCH v2"                  \
+    -M origin/master..HEAD                       \
+    -o submissions/${DIRECTORY:-/dev/null}/
+
+# Example of sending the emails, after editing cover letter, etc.
+# (remember to modify the to/cc list as appropriate!)
+  git send-email                                          \
+    --smtp-ssl-cert-path=/etc/pki/tls/certs/ca-bundle.crt \
+    --in-reply-to=${THREAD_ID}                            \
+    --from="Elijah Newren <newren@gmail.com>"             \
+    --to=git@vger.kernel.org                              \
+    --cc=sbeller@google.com                               \
+    --cc=gitster@pobox.com                                \
+    submissions/${DIRECTORY}
+
+Example vars:
+  DIRECTORY=detect-directory-renames/10/
+  THREAD_ID='xmqqmuya43cs.fsf@gitster-ct.c.googlers.com'
+
+
+# sendemail config
+  # using smtp.gmail.com
+  sendemail.smtpencryption=ssl
+  sendemail.smtpserver=smtp.gmail.com
+  sendemail.smtpuser=newren@gmail.com
+  # using smtp.yojoe.local
+  sendemail.smtpserver=smtp.yojoe.local
+  sendemail.serverport=465
+  sendemail.smtpencryption=ssl
+  sendemail.from=Elijah Newren <newren@palantir.com>
+
+
+# git calendar:
+http://tinyurl.com/gitCal
+OR
+https://calendar.google.com/calendar/embed?src=jfgbl2mrlipp4pb6ieih0qr3so@group.calendar.google.com

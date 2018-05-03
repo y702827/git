@@ -1,0 +1,45 @@
+From fa0fb70620925b4cb072bfb24ccad53ee77007ff Mon Sep 17 00:00:00 2001
+From: Elijah Newren <newren@gmail.com>
+Date: Sat, 9 Apr 2016 13:29:37 -0700
+Subject: [PATCH] git-update-index.txt: Fix slightly misleading example command
+
+The following phrase could be interpreted multiple ways:
+  "To pretend you have a file with mode and sha1 at path"
+
+In particular, I can think of two:
+  1. Pretend we have some new file with mode and sha
+  2. Pretend one of the files we are already tracking has a different
+     mode and sha1 than what it really does
+
+I think people could easily assume either case while reading, but the
+example command provided doesn't actually handle the first case.  Modify
+the example command so that it correctly handles both cases (by passing
+a flag that is unnecessary in the second case), and re-order the wording
+in a way that makes it more likely folks will assume the first
+interpretation.
+
+Signed-off-by: Elijah Newren <newren@gmail.com>
+---
+ Documentation/git-update-index.txt | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Documentation/git-update-index.txt b/Documentation/git-update-index.txt
+index c6cbed1..4b3546d 100644
+--- a/Documentation/git-update-index.txt
++++ b/Documentation/git-update-index.txt
+@@ -226,10 +226,10 @@ Using --cacheinfo or --info-only
+ current working directory.  This is useful for minimum-checkout
+ merging.
+ 
+-To pretend you have a file with mode and sha1 at path, say:
++To pretend you have a file at path with mode and sha1, say:
+ 
+ ----------------
+-$ git update-index --cacheinfo <mode>,<sha1>,<path>
++$ git update-index --add --cacheinfo <mode>,<sha1>,<path>
+ ----------------
+ 
+ '--info-only' is used to register files without placing them in the object
+-- 
+2.8.0.6.g5833b2a
+
