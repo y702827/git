@@ -1,0 +1,62 @@
+Remaining todo:
+  * handle_change_delete may have dir_in_way() bug
+
+
+Recursive:
+  - unrenaming can push a path back into a D/F conflict; might have to do more
+  - unrenaming can mess with order for determining if there's a D/F conflict
+
+Important things:
+  for recursive:
+    - directory/file add/add conflict: instate both, with different names
+    for three-way, just take merge-base (?)
+    for two-way:
+      - submodule renames aren't a thing (currently) and hard to recreate;
+        they should take priority.
+      - normal files work with rename detection, but their contents are
+        important, so make sure they are present but feel free to rename
+      - directories are filled with normal files, so just rename the directory
+      - symlink renames aren't a thing, merging different symlinks is always a
+        conflict, and these are cheap to recreate, so just take NULL for
+	merge-base
+
+============================== Old notes ==============================
+
+O: symlink OR NULL
+A: symlink_v2
+B: symlink_v3
+C: symlink_v2
+D: symlink_v3
+Expected: conflict(content); but git won't detect the conflict
+  (when a->mode and b->mode is symlink, git prefers a->oid in merge_file_1())
+
+O: submodule OR NULL
+A: submodule_v2
+B: submodule_v3
+C: submodule_v2
+D: submodule_v3
+Expected: conflict(content); but git won't detect the conflict
+  (merge_submodule() defaults to a->oid when it can't find a merge)
+
+
+O: symlink OR NULL
+A: symlink_v2
+B: submodule
+C: symlink_v2
+D: submodule
+Expected: conflict(mode); but git won't detect the conflict
+  (when a->mode and b->mode not regular, git prefers b->mode in merge_file_1())
+
+O: symlink OR NULL
+A: reg file
+B: executable file
+C: reg file
+D: executable file
+Expected: conflict (mode); but git won't detect the conflict
+  (git prefer's a->mode when o->mode != a->mode != b->mode in merge_file_1)
+  also, only solution short of NULL for merge-base (which causes later
+  unnecessary add/add conflicts), is use fake mode for merge-base (0000000,
+  or 0120000?)
+
+In merge_file_1, file wins over submodule.  So, {rename,add}/{rename,add}
+  conflicts are weird.  Recursive case is kinda crazy here...
