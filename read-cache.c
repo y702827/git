@@ -527,6 +527,7 @@ int remove_index_entry_at(struct index_state *istate, int pos)
 	istate->cache_nr--;
 	if (pos >= istate->cache_nr)
 		return 0;
+	printf("Calling MOVE_ARRAY for deletion\n");
 	MOVE_ARRAY(istate->cache + pos, istate->cache + pos + 1,
 		   istate->cache_nr - pos);
 	return 1;
@@ -1201,6 +1202,7 @@ static int add_index_entry_with_check(struct index_state *istate, struct cache_e
 	 */
 	if (pos < istate->cache_nr && ce_stage(ce) == 0) {
 		while (ce_same_name(istate->cache[pos], ce)) {
+		  printf("HERE\n");
 			ok_to_add = 1;
 			if (!remove_index_entry_at(istate, pos))
 				break;
@@ -1242,9 +1244,11 @@ int add_index_entry(struct index_state *istate, struct cache_entry *ce, int opti
 
 	/* Add it in.. */
 	istate->cache_nr++;
-	if (istate->cache_nr > pos + 1)
+	if (istate->cache_nr > pos + 1) {
+		printf("Calling MOVE_ARRAY for insertion\n");
 		MOVE_ARRAY(istate->cache + pos + 1, istate->cache + pos,
 			   istate->cache_nr - pos - 1);
+	}
 	set_index_entry(istate, pos, ce);
 	istate->cache_changed |= CE_ENTRY_ADDED;
 	return 0;
