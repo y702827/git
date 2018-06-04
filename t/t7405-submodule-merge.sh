@@ -279,4 +279,45 @@ test_expect_success 'recursive merge with submodule' '
 	 grep "$(cat expect3)" actual > /dev/null)
 '
 
+test_expect_success 'setup merge clean delete of submodule' '
+	test_create_repo clean-delete &&
+	(
+		cd clean-delete &&
+
+		test_create_repo submodule &&
+		(
+			cd submodule &&
+			echo hello >world &&
+			git add world &&
+			git commit -m greeting
+		) &&
+		git add submodule &&
+		git commit -m "I have a submodule" &&
+
+		git branch A &&
+		git branch B &&
+
+		git checkout B &&
+		git rm --cached submodule &&
+		git commit -m "Remove submodule" &&
+
+		git checkout A &&
+		git commit --allow-empty -m "No important changes"
+	)
+'
+
+test_expect_success 'check merge clean delete of submodule' '
+	(
+		cd clean-delete &&
+
+		git checkout A^0 &&
+		git merge -s recursive B^0 &&
+
+		git ls-files -s >out &&
+		test_line_count = 0 out &&
+
+		test_path_is_missing submodule
+	)
+'
+
 test_done
