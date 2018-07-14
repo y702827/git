@@ -1407,6 +1407,7 @@ static int handle_rename_via_dir(struct merge_options *opt,
 		 * only record the file at dest->path in the appropriate
 		 * higher stage.
 		 */
+		/* FIXME: Why put worktree at alt_path and not index too? */
 		if (update_file(opt, 0, dest, file_path))
 			return -1;
 		if (file_path != dest->path)
@@ -1538,6 +1539,7 @@ static int handle_rename_delete(struct merge_options *opt,
 		return -1;
 
 	if (opt->priv->call_depth)
+		/* FIXME: Wat?  Just deleting the file as the resolution? */
 		return remove_file_from_index(opt->repo->index, dest->path);
 	else
 		return update_stages(opt, dest->path, NULL,
