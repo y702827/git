@@ -1497,8 +1497,22 @@ static int handle_change_delete(struct merge_options *opt,
 		 * path.  We could call update_file_flags() with update_cache=0
 		 * and update_wd=0, but that's a no-op.
 		 */
-		if (change_branch != opt->branch1 || alt_path)
-			ret = update_file(opt, 0, changed, update_path);
+		if (!o->call_depth && alt_path) {
+			struct diff_filespec orig, new;
+			int stage = (change_branch == o->branch1) ? 2 : 3;
+
+			remove_file_from_cache(path);
+			orig.mode = o_mode;
+			oidcpy(&orig.oid, o_oid);
+			new.mode = changed_mode;
+			oidcpy(&new.oid, changed_oid);
+			if (update_stages(o, alt_path, &orig,
+					  stage == 2 ? &new : NULL,
+					  stage == 3 ? &new : NULL))
+				ret = -1;
+		}
+		if (change_branch != o->branch1 || alt_path)
+			ret = update_file(o, 0, changed, update_path);
 	}
 	free(alt_path);
 
@@ -3143,23 +3157,23 @@ static int handle_content_merge(struct merge_file_info *mfi,
 
 	if (df_conflict_remains || is_dirty) {
 		char *new_path;
-		if (opt->priv->call_depth) {
-			remove_file_from_index(opt->repo->index, path);
-		} else {
-			if (!mfi->clean) {
-				if (update_stages(opt, path, o, a, b))
+
+		new_path = unique_path(opt, path, ci->ren1->branch);
+		remove_file_from_index(opt->repo->index, path);
+		if (!opt->priv->call_depth) {
+			if (!mfi.clean) {
+				if (update_stages(o, new_path, &one, &a, &b))
 					return -1;
 			} else {
 				int file_from_stage2 = was_tracked(opt, path);
 
-				if (update_stages(opt, path, NULL,
+				if (update_stages(opt, new_path, NULL,
 						  file_from_stage2 ? &mfi->blob : NULL,
 						  file_from_stage2 ? NULL : &mfi->blob))
 					return -1;
 			}
 
 		}
-		new_path = unique_path(opt, path, ci->ren1->branch);
 		if (is_dirty) {
 			output(opt, 1, _("Refusing to lose dirty file at %s"),
 			       path);
@@ -3409,10 +3423,19 @@ static int process_entry(struct merge_options *opt,
 			output(opt, 1, _("CONFLICT (%s): There is a directory with name %s in %s. "
 			       "Adding %s as %s"),
 			       conf, path, other_branch, path, new_path);
+			remove_file_from_index(opt->repo->index, path);
+			if (!opt->priv->call_depth) {
+				struct diff_filespec dfs;
+
+				dfs.mode = mode;
+				oidcpy(&dfs.oid, oid);
+				if (update_stages(opt, new_path, NULL,
+						  a_oid ? &dfs : NULL,
+						  a_oid ? NULL : &dfs))
+					clean_merge = -1;
+			}
 			if (update_file(opt, 0, contents, new_path))
 				clean_merge = -1;
-			else if (opt->priv->call_depth)
-				remove_file_from_index(opt->repo->index, path);
 			free(new_path);
 		} else {
 			output(opt, 2, _("Adding %s"), path);

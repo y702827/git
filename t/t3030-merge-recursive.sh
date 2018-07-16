@@ -369,9 +369,9 @@ test_expect_success 'merge-recursive d/f conflict result' '
 
 	git ls-files -s >actual &&
 	(
-		echo "100644 $o0 1	a" &&
-		echo "100644 $o1 2	a" &&
 		echo "100644 $o4 0	a/c" &&
+		echo "100644 $o0 1	a~$c1" &&
+		echo "100644 $o1 2	a~$c1" &&
 		echo "100644 $o0 0	b" &&
 		echo "100644 $o0 0	c" &&
 		echo "100644 $o1 0	d/e"
@@ -393,9 +393,9 @@ test_expect_success 'merge-recursive d/f conflict result the other way' '
 
 	git ls-files -s >actual &&
 	(
-		echo "100644 $o0 1	a" &&
-		echo "100644 $o1 3	a" &&
 		echo "100644 $o4 0	a/c" &&
+		echo "100644 $o0 1	a~$c1" &&
+		echo "100644 $o1 3	a~$c1" &&
 		echo "100644 $o0 0	b" &&
 		echo "100644 $o0 0	c" &&
 		echo "100644 $o1 0	d/e"
@@ -420,9 +420,9 @@ test_expect_success 'merge-recursive d/f conflict result' '
 		echo "100644 $o1 0	a" &&
 		echo "100644 $o0 0	b" &&
 		echo "100644 $o0 0	c" &&
-		echo "100644 $o6 3	d" &&
 		echo "100644 $o0 1	d/e" &&
-		echo "100644 $o1 2	d/e"
+		echo "100644 $o1 2	d/e" &&
+		echo "100644 $o6 3	d~$c6"
 	) >expected &&
 	test_cmp expected actual
 
@@ -444,9 +444,9 @@ test_expect_success 'merge-recursive d/f conflict result' '
 		echo "100644 $o1 0	a" &&
 		echo "100644 $o0 0	b" &&
 		echo "100644 $o0 0	c" &&
-		echo "100644 $o6 2	d" &&
 		echo "100644 $o0 1	d/e" &&
-		echo "100644 $o1 3	d/e"
+		echo "100644 $o1 3	d/e" &&
+		echo "100644 $o6 2	d~$c6"
 	) >expected &&
 	test_cmp expected actual
 

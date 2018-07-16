@@ -385,7 +385,7 @@ test_expect_success 'Rename+D/F conflict; renamed file cannot merge and dir in t
 	test_must_fail git merge --strategy=recursive dir-in-way &&
 
 	test 5 -eq "$(git ls-files -u | wc -l)" &&
-	test 3 -eq "$(git ls-files -u dir | grep -v file-in-the-way | wc -l)" &&
+	test 3 -eq "$(git ls-files -u dir~HEAD | wc -l)" &&
 	test 2 -eq "$(git ls-files -u dir/file-in-the-way | wc -l)" &&
 
 	test_must_fail git diff --quiet &&
@@ -421,7 +421,7 @@ test_expect_success 'Same as previous, but merged other way' '
 	test_must_fail git merge --strategy=recursive renamed-file-has-conflicts &&
 
 	test 5 -eq "$(git ls-files -u | wc -l)" &&
-	test 3 -eq "$(git ls-files -u dir | grep -v file-in-the-way | wc -l)" &&
+	test 3 -eq "$(git ls-files -u dir~renamed-file-has-conflicts | wc -l)" &&
 	test 2 -eq "$(git ls-files -u dir/file-in-the-way | wc -l)" &&
 
 	test_must_fail git diff --quiet &&
