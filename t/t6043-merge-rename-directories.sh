@@ -1935,8 +1935,8 @@ test_expect_success '7e: transitive rename in rename/delete AND dirs in the way'
 			 A:x/d/f  A:y/d/g  O:z/b  O:z/c  O:x/d &&
 		test_cmp expect actual &&
 
-		git hash-object y/d~B^0 >actual &&
-		git rev-parse O:x/d >expect &&
+		tail -n +6 y/d~B^0 >actual &&
+		git cat-file -p O:x/d >expect &&
 		test_cmp expect actual
 	)
 '

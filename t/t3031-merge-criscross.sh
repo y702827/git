@@ -75,6 +75,7 @@ test_expect_success 'setup repo with criss-cross history' '
 	git checkout B &&
 	test_must_fail git merge E &&
 	# force-resolve
+	echo 9 >data/new-9 &&
 	git add data &&
 	git commit -m F &&
 	git branch F &&
@@ -83,6 +84,7 @@ test_expect_success 'setup repo with criss-cross history' '
 	git checkout C &&
 	test_must_fail git merge D &&
 	# force-resolve
+	echo 9 >data/new-9 &&
 	git add data &&
 	git commit -m G &&
 	git branch G

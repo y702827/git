@@ -440,6 +440,7 @@ test_expect_success 'deleted vs modified submodule' '
 	yes "" | git mergetool both &&
 	yes "d" | git mergetool file11 file12 &&
 	yes "r" | git mergetool submod &&
+	yes "d" | git mergetool submod~conflicts &&
 	rmdir submod && mv submod-movedaside submod &&
 	echo "branch1 submodule" >expect &&
 	test_cmp expect submod/bar &&
@@ -459,6 +460,7 @@ test_expect_success 'deleted vs modified submodule' '
 	yes "" | git mergetool both &&
 	yes "d" | git mergetool file11 file12 &&
 	yes "l" | git mergetool submod &&
+	yes "d" | git mergetool submod~conflicts &&
 	test ! -e submod &&
 	output="$(git mergetool --no-prompt)" &&
 	test "$output" = "No files need merging" &&
@@ -473,6 +475,7 @@ test_expect_success 'deleted vs modified submodule' '
 	yes "" | git mergetool both &&
 	yes "d" | git mergetool file11 file12 &&
 	yes "r" | git mergetool submod &&
+	yes "d" | git mergetool submod~conflicts &&
 	test ! -e submod &&
 	test -d submod.orig &&
 	git submodule update -N &&
@@ -489,10 +492,10 @@ test_expect_success 'deleted vs modified submodule' '
 	yes "" | git mergetool both &&
 	yes "d" | git mergetool file11 file12 &&
 	yes "l" | git mergetool submod &&
+	yes "d" | git mergetool submod~conflicts &&
 	echo "master submodule" >expect &&
 	test_cmp expect submod/bar &&
 	git submodule update -N &&
-	echo "master submodule" >expect &&
 	test_cmp expect submod/bar &&
 	output="$(git mergetool --no-prompt)" &&
 	test "$output" = "No files need merging" &&

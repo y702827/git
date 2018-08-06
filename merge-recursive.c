@@ -366,6 +366,98 @@ static void output_commit_title(struct merge_options *opt, struct commit *commit
 	flush_output(opt);
 }
 
+static void write_conflict_notice(struct strbuf *buf,
+				  struct strbuf *notice,
+				  int use_crlf)
+{
+	int marker_size = 8;
+
+	strbuf_addchars(buf, '<', marker_size);
+	if (use_crlf)
+		strbuf_addch(buf, '\r');
+	strbuf_addch(buf, '\n');
+
+	strbuf_addbuf(buf, notice);
+	if (use_crlf)
+		strbuf_addch(buf, '\r');
+	strbuf_addch(buf, '\n');
+
+	strbuf_addchars(buf, '=', marker_size);
+	if (use_crlf)
+		strbuf_addch(buf, '\r');
+	strbuf_addch(buf, '\n');
+
+	strbuf_addbuf(buf, notice);
+	if (use_crlf)
+		strbuf_addch(buf, '\r');
+	strbuf_addch(buf, '\n');
+
+	strbuf_addchars(buf, '>', marker_size);
+	if (use_crlf)
+		strbuf_addch(buf, '\r');
+	strbuf_addch(buf, '\n');
+}
+
+static int create_non_textual_conflict_file(struct merge_options *o,
+					    struct strbuf *notice,
+					    const char *path,
+					    struct object_id *oid)
+{
+	struct strbuf contents = STRBUF_INIT;
+	int ret = 0;
+	int use_crlf = 0; /* FIXME: Determine platform default?? */
+
+	write_conflict_notice(&contents, notice, use_crlf);
+
+	if (write_object_file(contents.buf, contents.len, "blob", oid))
+		ret = err(o, _("Unable to add %s to database"), path);
+
+	strbuf_release(&contents);
+	return ret;
+}
+
+static int insert_non_textual_conflict_header(struct merge_options *o,
+					      struct strbuf *notice,
+					      const char *path,
+					      struct diff_filespec *contents)
+{
+	struct strbuf header = STRBUF_INIT;
+	struct strbuf dst_buf = STRBUF_INIT;
+	enum object_type type;
+	char *buf;
+	unsigned long size;
+	char *end;
+	int use_crlf;
+	int ret = 0;
+
+	if (!S_ISREG(contents->mode))
+		BUG("insert_non_textual_conflict_header called on file with wrong mode: %0d", contents->mode);
+
+	buf = read_object_file(&contents->oid, &type, &size);
+	if (!buf)
+		return err(o, _("cannot read object %s '%s'"),
+			   oid_to_hex(&contents->oid), path);
+	if (type != OBJ_BLOB) {
+		return err(o, _("blob expected for %s '%s'"),
+			   oid_to_hex(&contents->oid), path);
+	}
+
+	end = strchrnul(buf, '\n');
+	use_crlf = (end > buf && end[-1] == '\r');
+	write_conflict_notice(&header, notice, use_crlf);
+
+	strbuf_addbuf(&dst_buf, &header);
+	strbuf_add(&dst_buf, buf, size);
+
+	if (write_object_file(dst_buf.buf, dst_buf.len, type_name(type),
+			      &contents->oid))
+		ret = err(o, _("Unable to add %s to database"), path);
+
+	strbuf_release(&header);
+	strbuf_release(&dst_buf);
+	return ret;
+}
+
 static int add_cacheinfo(struct merge_options *opt,
 			 const struct diff_filespec *blob,
 			 const char *path, int stage, int refresh, int options)
@@ -1434,6 +1526,8 @@ static int handle_change_delete(struct merge_options *opt,
 {
 	char *alt_path = NULL;
 	const char *update_path = path;
+	struct strbuf sb = STRBUF_INIT;
+	int is_binary;
 	int ret = 0;
 
 	if (dir_in_way(opt->repo->index, path, !opt->priv->call_depth, 0) ||
@@ -1497,8 +1591,46 @@ static int handle_change_delete(struct merge_options *opt,
 		 * path.  We could call update_file_flags() with update_cache=0
 		 * and update_wd=0, but that's a no-op.
 		 */
-		if (change_branch != opt->branch1 || alt_path)
-			ret = update_file(opt, 0, changed, update_path);
+		strbuf_addf(&sb, _("CONFLICT (%s/delete): %s deleted in %s and %s in %s."),
+			    change, path, delete_branch, change_past, change_branch);
+		 /*
+		  * FIXME: figure out if update_path's contents are binary;
+		  * buffer_is_binary() may help, though in the case of e.g.
+		  * add/add conflicts it'd be nice to avoid calling that
+		  * multiple times per buffer.
+		  */
+		is_binary = 0;
+		if (S_ISREG(changed->mode) && !is_binary) {
+			struct diff_filespec changed_with_headers;
+			
+			changed_with_headers.mode = changed->mode;
+			oidcpy(&changed_with_headers.oid, &changed->oid); 
+			insert_non_textual_conflict_header(
+			    opt,
+			    &sb,
+			    update_path,
+			    &changed_with_headers);
+			ret = update_file_flags(opt, &changed_with_headers,
+						update_path,
+						/* update_cache */ 0,
+						/* update_wd */    1);
+		} else {
+			struct diff_filespec conflict_file;
+			char *conflict_path;
+			conflict_path = unique_path(opt, update_path,
+						    "conflicts");
+
+			conflict_file.mode = S_IFREG | 0644;
+			create_non_textual_conflict_file(opt, &sb, conflict_path,
+							 &conflict_file.oid);
+			ret = update_file_flags(opt, &conflict_file,
+						conflict_path,
+						/* update_cache */ 0,
+						/* update_wd */    1);
+			ret |= update_stages(opt, conflict_path, &conflict_file,
+					     NULL, NULL);
+			free(conflict_path);
+		}
 	}
 	free(alt_path);
 
