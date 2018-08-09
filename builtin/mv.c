@@ -220,9 +220,15 @@ int cmd_mv(int argc, const char **argv, const char *prefix)
 				}
 				argc += last - first;
 			}
-		} else if (cache_name_pos(src, length) < 0)
+		} else if (cache_name_pos(src, length) < 0) {
+			/*
+			 * FIXME: If active_cache[-ANSWER] is an entry for src
+			 * just with a stage higher than 0, then move it (and
+			 * any other entries with same name and stage greater
+			 * than 0) and don't report an error.
+			 */
 			bad = _("not under version control");
-		else if (lstat(dst, &st) == 0 &&
+		} else if (lstat(dst, &st) == 0 &&
 			 (!ignore_case || strcasecmp(src, dst))) {
 			bad = _("destination exists");
 			if (force) {
