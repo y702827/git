@@ -392,6 +392,87 @@ test_expect_success 'git detects conflict merging criss-cross+modify/delete, rev
 	)
 '
 
+#
+# criss-cross + rename/delete, heavy editing
+#
+#      B   D
+#      o---o
+#     / \ / \
+#  A o   X   ? F
+#     \ / \ /
+#      o---o
+#      C   E
+#
+#   Commit A: contents (with numbers 1..8, one per line)
+#   Commit B: rename contents->numbers, add "9\n" to end of file
+#   Commit C: delete contents
+#   Commit D: rename numbers->counting, adding "10\n" to end of file
+#   Commit E: rename numbers->counting, adding "0\n" to beginning of file
+#
+# Merging commits D & E should have no conflict.
+
+test_expect_success 'setup resolvable differences with rename/delete in virtual merge base' '
+	test_create_repo rename-delete &&
+	(
+		cd rename-delete &&
+
+		test_seq 1 8 >contents &&
+		git add contents &&
+		test_tick &&
+		git commit -m A &&
+
+		git branch B &&
+
+		git checkout -b C &&
+		git rm contents &&
+		test_tick &&
+		git commit -m C &&
+
+		git checkout B &&
+		git mv contents numbers &&
+		echo 9 >>numbers &&
+		git add numbers &&
+		test_tick &&
+		git commit -m B &&
+
+		git checkout B^0 &&
+		test_must_fail git merge C &&
+		echo 10 >>numbers &&
+		git add numbers &&
+		git mv numbers counting &&
+		test_tick &&
+		git commit -m D &&
+		git tag D &&
+
+		git checkout C^0 &&
+		test_must_fail git merge B &&
+		test_seq 1 9 >numbers &&
+		git add numbers &&
+		git mv numbers counting &&
+		test_tick &&
+		git commit -m E &&
+		git tag E
+	)
+'
+
+test_expect_success 'check resolvable differences with rename/delete in virtual merge base' '
+	(
+		cd rename-delete &&
+
+		git checkout D^0 &&
+
+		git merge -s recursive E^0 &&
+
+		git ls-files -s >out &&
+		test_line_count = 1 out &&
+		git ls-files -o >out &&
+		test_line_count = 1 out &&
+
+		test_seq 0 10 >expect &&
+		test_cmp expect counting
+	)
+'
+
 #      SORRY FOR THE SUPER LONG DESCRIPTION, BUT THIS NEXT ONE IS HAIRY
 #
 # criss-cross + d/f conflict via add/add:

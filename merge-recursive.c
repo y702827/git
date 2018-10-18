@@ -1492,12 +1492,7 @@ static int handle_change_delete(struct merge_options *opt,
 				       change_branch, change_branch, path, alt_path);
 			}
 		}
-		/*
-		 * No need to call update_file() on path when change_branch ==
-		 * opt->branch1 && !alt_path, since that would needlessly touch
-		 * path.  We could call update_file_flags() with update_cache=0
-		 * and update_wd=0, but that's a no-op.
-		 */
+
 		if (!o->call_depth && alt_path) {
 			struct diff_filespec orig, new;
 			int stage = (change_branch == o->branch1) ? 2 : 3;
@@ -1512,6 +1507,12 @@ static int handle_change_delete(struct merge_options *opt,
 					  stage == 3 ? &new : NULL))
 				ret = -1;
 		}
+		/*
+		 * No need to call update_file() on path when change_branch ==
+		 * o->branch1 && !alt_path, since that would needlessly touch
+		 * path.  We could call update_file_flags() with update_cache=0
+		 * and update_wd=0, but that's a no-op.
+		 */
 		if (change_branch != o->branch1 || alt_path)
 			ret = update_file(o, 0, changed, update_path);
 	}
@@ -1538,10 +1539,11 @@ static int handle_rename_delete(struct merge_options *opt,
 				 _("rename"), _("renamed")))
 		return -1;
 
-	if (opt->priv->call_depth)
+	if (opt->priv->call_depth) {
 		/* FIXME: Wat?  Just deleting the file as the resolution? */
+		printf("Nuking %s\n", dest->path);
 		return remove_file_from_index(opt->repo->index, dest->path);
-	else
+	} else
 		return update_stages(opt, dest->path, NULL,
 				     rename_branch == opt->branch1 ? dest : NULL,
 				     rename_branch == opt->branch1 ? NULL : dest);
