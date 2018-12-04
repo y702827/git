@@ -8,6 +8,21 @@
   * Get rid of splits: {diff,merge}_detect_rename, {diff,merge}_rename_limit
   * Anything on the 'misc' or 'wip' branches
 
+* Merge Performance
+  * Old stuff
+    * When we find exact match, don't recompare looking for something better
+    * (Minor fixes like avoiding unnecessary string list lookups)
+    * Avoid rename detection when unmodified on one side
+    * filter rename_src list when possible
+  * avoid O(N^2) rename detection, if file basename is good enough hint
+    * have to avoid breaking directory rename detection
+  * avoid O(N^2) index removals part 1: let unpack_trees do more trivial cases
+  * avoid O(N^2) index removals part 2: smarter index removal handling
+  * <Do Profiling work to find out if there are other slow bits>
+  * avoid unnecessary work: trivial tree merges
+  * avoid O(N), part 1: don't load or store index in bare-tree merge
+  * avoid O(N), part 2: store and use partial indexes (proof of concept only)
+
 * GVFS-like experience
   * git-bomb repo (add object, add tree with 10 entries all pointing to that
     object with different names, then another tree with 10 entries all pointing
