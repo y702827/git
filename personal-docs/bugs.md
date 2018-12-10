@@ -1,5 +1,6 @@
 * sparse checkout
   * Phantom "not uptodate. Cannot update sparse checkout":
+    (stat-dirty?)
     $ git read-tree -mu HEAD
     error: Entry 'packages/pem-ui/package.json' not uptodate. Cannot update sparse checkout.
     $ git status
@@ -12,6 +13,7 @@
     HEAD is now at af5d3146842 WIP cleanups
     $ git read-tree -mu HEAD
   * reset --hard fails
+    (stat-dirty?  marked as sparse, but entry exists in working dir?)
     $ git status
     On branch sparse-checkout
     Your branch is ahead of 'origin/develop' by 2 commits.
@@ -24,6 +26,13 @@
     $ git reset --hard
     error: Sparse checkout leaves no entry on working directory
     fatal: Could not reset index file to revision 'HEAD'.
+
+  * How to make a reset --hard fail:
+    $ git merge origin/develop  (clean merge, adds some working tree files)
+    $ git reset --hard HEAD~1
+    error: Entry 'modules/foo/file-outside-sparse-paths.c' not uptodate. Cannot update sparse checkout.
+    fatal: Could not reset index file to revision 'HEAD~1'.
+
 
 * submit and fix ./t7107-reset-perf-avoid-rewrite.sh
   (when file 100% renamed, reset --hard could unrename instead of deleting
