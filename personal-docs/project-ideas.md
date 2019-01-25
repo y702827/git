@@ -46,6 +46,8 @@
 * rebase consistency
   * Make git commit mention {rebase,cherry-pick} --skip instead of reset
   * Add rebase --empty={drop,halt,keep}
+  * Remove (as much as possible) call to `rev-list --cherry-pick ...`
+    * See https://public-inbox.org/git/nycvar.QRO.7.76.6.1901211635080.41@tvgsbejvaqbjf.bet/
   * Implement missing flags
     * Implement --ignore-space-change/--ignore-whitespace by transliterating
       to -Xignore-space-change
@@ -55,6 +57,8 @@
   * Add --am flag
   * Do heavy testing of performance of am vs. interactive machinery
   * Change default to interactive machinery
+  * Make rebase rewrite commit messages that refer to old commits that were
+    also rebased?
 
 * Add testcases for conflict types we don't handle well
   * rename issues (??)
@@ -94,11 +98,6 @@
   * file collision conflicts (add/add, rename/add, rename/rename(2to1)) can
     result in unnecessary updates if both files are identical.
 
-* merge file collision consistency
-  * make rename/add and rename/rename(2to1) act like add/add
-  * https://public-inbox.org/git/xmqq7eqf1tc9.fsf@gitster-ct.c.googlers.com/
-  * github/merge-file-collision-consistency-v3
-
 * pathname conflicts hints for worktree
   * Example: chains of rename/rename(1to2) and rename/rename(2to1)
     * File contents
@@ -137,11 +136,6 @@
     * multiply-transitive renames (not a conflict, so shouldn't modify)
   * https://public-inbox.org/git/CABPp-BHxJyWsAQ3FkfdC-5Vqe3d7wWZm-hVYd0-afNY9dEgMeQ@mail.gmail.com/
   * github/conflict-handling && github/conflict-handling-extras
-
-* merge resolution sanity
-  * depends on:
-    * merge file collision consistency
-    * pathname conflicts hints for worktree
 
 * Fix clean with pathspec
   * https://public-inbox.org/git/20180405193124.GA24643@sigill.intra.peff.net/
@@ -253,30 +247,9 @@
     * commit cherry-picked, then additional changes on same lines on one side
 
 * filter-repo: a much better replacement for filter-branch (and maybe BFG??)
-  * default to rewrite all branches, and default to expunge old history
-  * if any cruft temporary objects created during process, expunge those too
-  * work with fast-export/fast-import; try to use --no-data if possible
-  * safety: provide flag to override but otherwise abort early if any of:
-    * working tree unclean
-    * index doesn't match HEAD
-    * $BRANCH != origin/$BRANCH for any $BRANCH
-    * repo not fully repacked with garbage pruned
-    * more than one branch has a reflog
-    * reflog for current branch contains more than one entry
-  * work in bare repos too
-  * Mode that just provides statistics (e.g. object size) instead of actually
-    filtering
-  * Incorporate fixes from Ken Brownfield in final email from 2010 thread
-  * Flags of filter-branch to implement
-    * -d
-    * -f/--force
-    * --subdirectory-filter
-    * --prune-empty
-    * --tag-name-filter (but rename to --tag-name-stream-filter?)
+  * Perf improvements: avoid immediate blocking on fast-import; re compile, etc.
+  * Other flags of filter-branch to consider implementing
     * --msg-filter (but should it apply to annotated tags too?)
-  * Flags of filter-branch to modify a bit:
-    * --tree-filter
-      * Write out touched files to working tree.  Let user mess with them.
     * --parent-filter
       * Provide commit and parents, space separated, on input
       * Read back commit and new parents, space separated, on output
@@ -309,31 +282,8 @@
     * $REPO ?? (possibly incompatible with revision args)
   * New filters
     * --branch-name-stream-filter (similar to --tag-name-stream-filter)
-    * One version of --path-filter:
-      * Create identical path structure in $TMPDIR
-      * Create placeholder files whose contents are at most a few bytes in size
-        (unrelated to real contents), and all with different contents
-      * Run user-specified commands (e.g. mv, rm, etc.)
-      * Read entire directory; and:
-        * Error out if any files with unknown content are found
-        * If file of certain original content not found, assume deleted
-        * If file of certain original content found, record oldpath->newpath
-        * error out if oldpath->newpath gives different mapping than
-          run of --path-filter on a previous commit
       * If a commit only has paths for which we already have oldpath->newpath
         mappings, skip re-running the new mapping check
-    * Another version of --path-filter:
-      * --path-filter[-{glob,regex}[-{and,or}[-not]]]
-        * or's combine with previous flags
-        * and's start a new set, e.g
-          --path-filter-regex-or foo.*.txt   \
-            --path-filter-regex-or .*bar.*   \
-            --path-filter-regex-and .*what.* \
-            --path-filter-regex-or .*ever.*
-          ==
-          --path-stream-filter \
-            'grep -e foo.*.txt -e .*bar.* | grep -e .*what.* -e .*ever.*'
-      * Aborts if any filename has a newline
     * For --path-stream-filter:
       * Just pipe filenames, one per line, into command and read them back
       * Never repeat a filename
@@ -346,8 +296,6 @@
 	   $NEWER_REVS --not $OLDER_REVS >out
         3) cat out | transform_program | git fast-import --quiet --force \
 	   --import-marks=known --force
-      * Deleting biggest
-           time git cat-file --batch-check --batch-all-objects
       * Rewrite a range of commits, orphan any that had parents outside range
       * Move entire repo into a subdirectory
     * --content-filter
