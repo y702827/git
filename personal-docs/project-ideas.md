@@ -23,6 +23,60 @@
   * avoid O(N), part 1: don't load or store index in bare-tree merge
   * avoid O(N), part 2: store and use partial indexes (proof of concept only)
 
+* Old notes on avoiding breaking directory renames despite optimizations:
+  * In diffcore_rename:  Per side:
+    * List of "skippable paths"
+    * List of "exception directories" (directories that disappeared on one side,
+      but only e.g. a/ not both a/ and a/b/)
+    * Do 100% rename check
+    * If any 100% renames begin with exception directory, remove exception
+      directory
+    * Go through list of skippable paths, remove those starting with except.
+      dir.'s
+    * Remove remaining skippable paths from consideration on base side
+    * Filter list so we only have to iterate over relevant paths
+
+    * For each path in base:
+      * Add basename->fullname mapping
+    * For each path in dst:
+      * If basename in basename->fullname mapping, check similiarity
+      * If similar, record rename mapping base->dst
+    * Filter list again, so we only have to iterate over relevant paths
+
+    * Do normal rename checks
+
+* trivial tree merges; what does it miss? (tree O->{A,B}; one of A,B match O)
+  * Conflicts I once thought that could go undetected:
+    * rename/delete       [I think I was crazy.  This doesn't seem possible.]
+    * rename/rename(1to2) [Also not possible.]
+  * Conflicts that wouldn't be conflicts:
+    * Simple rename appears as modify/delete
+      [No, simple rename looks like delete & add; can't get modify/delete
+       without a modify, but tree hash is same]
+      (If we hit modify/delete conflicts, then note we need to look more
+       closely?)
+
+  * Other weirdness in resolution
+    * Directory renames may go undetected and leave files in old paths
+      (If directory disappears on either side, still need to descend, at least
+       for 100% renames, for directory rename detection to work.  But we also
+       need to descend into target directories, which may already exist on both
+       sides...)
+
+       [Example:
+        O: a/
+           a/b/{x_1,y_1,z_1}
+
+        A: a/foo
+           a/b/{x_1,y_1,z_1}
+
+        B: c/
+           c/b/{x_1,y_1,z_1}
+
+       In this example, trivial merge says drop a/b (O matches A) and add c/b
+       (O matches A).  No renames are detected.  As such, a/foo won't get
+       renamed to c/foo.]
+
 * GVFS-like experience
   * git-bomb repo (add object, add tree with 10 entries all pointing to that
     object with different names, then another tree with 10 entries all pointing
@@ -303,6 +357,9 @@
       * Maybe? Receive filename as argv[1], then overwrite (exec'ed repeatedly)
     * Other ideas
       * mode handling?  deleting symlinks?
+
+* deprecate and error on `git diff A..B`:
+  * https://public-inbox.org/git/xmqqmumy6mxe.fsf@gitster-ct.c.googlers.com/
 
 * future merge pie-in-the-sky ideas
   * break detection
