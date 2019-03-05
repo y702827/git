@@ -301,24 +301,18 @@
     * commit cherry-picked, then additional changes on same lines on one side
 
 * filter-repo: a much better replacement for filter-branch (and maybe BFG??)
-  * Perf improvements: avoid immediate blocking on fast-import; re compile, etc.
   * Other flags of filter-branch to consider implementing
-    * --msg-filter (but should it apply to annotated tags too?)
+    * --parent-callback
+      given original_id as parameter, return new id
     * --parent-filter
       * Provide commit and parents, space separated, on input
       * Read back commit and new parents, space separated, on output
       * Check that user didn't introduce cycles; may be hard...
         * Early version, require that new parents are in ancestry of commit
-  * Flags of filter-branch I don't know if I want:
-    * --env-filter (provide alternatives, e.g. --name-filter, --email-filter,
-                    --time-filter -- though those would apply to tags too)
-    * --index-filter
-    * --commit-filter
   * Stuff from BFG that would be good
     * -b/--strip-blobs-bigger-than $SIZE
-    * --private (commit messages from revert and cherry-pick -x need to
-                 reference new sha1sums)
-  * Stuff from BFG to change
+  * Stuff from BFG that's stupid
+    * --private (See issue #139)
     * -p/--protect-blobs-from/--no-blob-protection
       * Save treeids of all branches at start (maybe in some special ref?)
       * At end, check if branches have same tree-id; if not, warn user
@@ -360,6 +354,18 @@
 
 * deprecate and error on `git diff A..B`:
   * https://public-inbox.org/git/xmqqmumy6mxe.fsf@gitster-ct.c.googlers.com/
+
+* fix gc wonkiness
+  * gc fails for folks for lack of disk space.  Sometimes running prune
+    _first_ works just fine.  (One user report of `git prune` cleaning out
+    30 gb...)
+  * gc can be exceptionally slow.  Try
+      git filter-repo --replace-text <(echo driver==>pilot)
+    in linux.git.  Because there are so many unreferenced blobs afterwards
+    that all get unpacked before the prune step, the gc slows to a crawl.
+  * gc hits the too-many-loose-objects repeatedly
+    https://public-inbox.org/git/20180716203539.GD25189@sigill.intra.peff.net/
+    "Loose objects and unreachable objects" in hash-function-transition.txt
 
 * future merge pie-in-the-sky ideas
   * break detection
