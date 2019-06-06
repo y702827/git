@@ -8,6 +8,16 @@
   * Get rid of splits: {diff,merge}_detect_rename, {diff,merge}_rename_limit
   * Anything on the 'misc' or 'wip' branches
 
+* Make git diff throw warning messages on various range operators
+  (A..B, merge_commit^!)
+  * https://public-inbox.org/git/CABPp-BGg_iSx3QMc-J4Fov97v9NnAtfxZGMrm3WfrGugOThjmA@mail.gmail.com/
+  * https://public-inbox.org/git/CABPp-BECj___HneAYviE3SB=wU6OTcBi3S=+Un1sP6L4WJ7agA@mail.gmail.com/
+
+* Avoid checkout during in-progress commands
+  * https://public-inbox.org/git/CABPp-BHramOjqpH0Rz-PEKbi0TX_sKOYvLiZ2Pb=hEpViaShmw@mail.gmail.com/
+
+* Clean up diff3-style merge base marker to not assume merge base was virtual
+
 * Merge Performance
   * Old stuff
     * When we find exact match, don't recompare looking for something better
@@ -194,6 +204,7 @@
 * Fix clean with pathspec
   * https://public-inbox.org/git/20180405193124.GA24643@sigill.intra.peff.net/
   * Might also mean cleaning up lots of callers of fill_directory()
+  * https://public-inbox.org/git/CABPp-BFfYFj232cHd6_NTkEg1n8AOQ4Abm7ZrnLPWHJEDzUPsg@mail.gmail.com/
 
 * Make break and rename detection safe to use together
   * https://crbug.com/git/15
