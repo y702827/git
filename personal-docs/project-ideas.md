@@ -18,6 +18,9 @@
 
 * Clean up diff3-style merge base marker to not assume merge base was virtual
 
+* Recreate mass merge comparison script
+  * Partially described at https://public-inbox.org/git/CABPp-BG632JPG0CMfjgDu6kLx-QK9o0B5D-Xpp-0hDCN2X9X=A@mail.gmail.com/
+
 * Merge Performance
   * Old stuff
     * When we find exact match, don't recompare looking for something better
