@@ -9,9 +9,10 @@
   * Anything on the 'misc' or 'wip' branches
 
 * Make git diff throw warning messages on various range operators
-  (A..B, merge_commit^!)
+  (A..B, merge_commit^!, --first-parent, --pretty=fuller)
   * https://public-inbox.org/git/CABPp-BGg_iSx3QMc-J4Fov97v9NnAtfxZGMrm3WfrGugOThjmA@mail.gmail.com/
   * https://public-inbox.org/git/CABPp-BECj___HneAYviE3SB=wU6OTcBi3S=+Un1sP6L4WJ7agA@mail.gmail.com/
+  * https://public-inbox.org/git/CABPp-BE1fQs99ipi9Y8gfQO3QHkxzQhn1uriEbj6YjdYH839eQ@mail.gmail.com/
 
 * Avoid checkout during in-progress commands
   * https://public-inbox.org/git/CABPp-BHramOjqpH0Rz-PEKbi0TX_sKOYvLiZ2Pb=hEpViaShmw@mail.gmail.com/
