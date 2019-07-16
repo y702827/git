@@ -126,7 +126,24 @@
   * Do heavy testing of performance of am vs. interactive machinery
   * Change default to interactive machinery
   * Make rebase rewrite commit messages that refer to old commits that were
-    also rebased?
+    also rebased; rationale:
+    - Leaving stale hashes around is rather unhelpful.  While branches that
+      still need to be rebased won't often need to refer to earlier commits
+      in the branch, sometimes we do.  The problems with avoiding hashes and
+      instead using references like "two commits ago" are:
+        (1) if I re-order commits during the rebase then the commit
+            message still needs to be reworded, and instead of correcting
+            a hash (which could have been automated) I now need to correct
+            how many commits there are separating the relevant two commits
+        (1b) further, if someone forgets to update the commit message, the
+             stale reference is much less likely to be noted as such, which
+             then will not only fail to help future readers it could actively
+             confuse them.
+        (2) even if the count of commits is correct, the count can still
+            confuse others looking through git log later, since git log
+            will intersperse commits from different branches that were
+            merged based on committer timestamp (--topo-order isn't the
+            default).
 
 * Add testcases for conflict types we don't handle well
   * rename issues (??)
