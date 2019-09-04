@@ -8,6 +8,84 @@
   * Get rid of splits: {diff,merge}_detect_rename, {diff,merge}_rename_limit
   * Anything on the 'misc' or 'wip' branches
 
+* Merge issues to address
+  * Separate ideas listed below:
+    * perf/correctness -- ort merge stratgy
+    * Maximize Accumulated Similarities (-Xmas)
+    * diff3 merging improvements (see below)
+    * remerge-diff stuff
+  * Individual issues
+    * Ambiguous renames
+      * See https://public-inbox.org/git/CABPp-BF4yjZrD7-bXLa9tHgEws2zvN2zJxqnMqgtY6zm2Lvk3A@mail.gmail.com/
+      * Idea: use ort to avoid doing rename detection when one side didn't change
+      * Idea (cont): if both sides changed, warn/conflict on ambiguous renames
+
+* diff3 merging improvements
+  * Docs on diff3 merging style:
+    * https://stackoverflow.com/questions/1203725/three-way-merge-algorithms-for-text (Provided good links, including some of those below)
+    * https://en.wikipedia.org/wiki/Merge_(version_control)  (alternatives-weave)
+    * https://blog.jcoglan.com (really good explanations of diff3)
+      * https://blog.jcoglan.com/2017/05/08/merging-with-diff3/
+      * https://blog.jcoglan.com/2017/06/19/why-merges-fail-and-what-can-be-done-about-it/
+      * https://blog.jcoglan.com/2017/09/19/the-patience-diff-algorithm/
+      * https://blog.jcoglan.com/2017/09/28/implementing-patience-diff/
+    * http://www.guiffy.com/SureMergeWP.html (Awesome testcases)
+    * http://www.cis.upenn.edu/~bcpierce/papers/diff3-short.pdf (academic paper)
+    * https://stackoverflow.com/questions/32365271/whats-the-difference-between-git-diff-patience-and-git-diff-histogram
+
+    * http://www.cse.chalmers.se/~vassena/publications_files/msc-thesis.pdf
+    * https://pdfs.semanticscholar.org/71e7/87ca774ffb12d01e996e8b1ebd022bbd45e9.pdf
+    * https://www.microsoft.com/en-us/research/wp-content/uploads/2015/02/paper-full.pdf
+
+  * New diff3 alternative:
+    * Biggest failures seem to be with "swapping" locations, so...
+    * Only works with histogram diff, for multiple reasons (see below)
+    * line appears n times in ours or theirs => appears n times in result
+      * appearing in a conflict block counts as 0.5 appearances
+      * Example: unique text moved elsewhere, target modified on other side
+        * illegal to show unconflicted in one location and conflicted elsewhere
+        * must show BOTH locations as conflicted
+    * Also keep track of where pairs appear,
+      * add "see hunk near line 68" or "see hunks near lines 68, 87", e.g.
+        "<<<<<< master, see hunk near line 392" (line 187)
+        ">>>>>>develop, see hunk near line 187" (line 392)
+      * plural form used if multiple unique separated lines moved together
+    * Avoid matching internally on high frequency lines
+      * Remove whitespace from lines before counting frequency
+      * Would avoid matching on: whitespace lines, opening braces, closing braces
+      * Reason to avoid:
+        * If one side adds to a function the lines
+	     A
+	     B
+          and the other at the same location adds the lines
+	     B
+	     C
+	  the diff3 stuff views it as likely that both added B, then they went
+	  and made further edits, thus act like we add line B to the base version
+	  and don't conflict but just give the result
+	     A
+	     B
+	     C
+	  This is great if B is a low-frequency line, but bad if B is e.g.
+	  whitespace.
+
+  * Idea: git merge --cautious
+    * Compare different algorithms (and report if they differ):
+      * myers
+      * patience
+      * minimal
+      * histogram
+      * ignore-whitespace/ignore-space-change
+      * MAS (maximally accumulated similarities; see below)
+    * Most interesting when some succeed and others fail
+    * Also interesting if the unconflicted portions do not match
+
+  * Idea: git log --supercheck
+    * Does much the same thing but ALSO:
+      * checks if user resolution differs from these
+      * also looks at cherry-picks and reverts, not just merges
+        * testcase?: https://grsecurity.net/teardown_of_a_failed_linux_lts_spectre_fix.php
+
 * Make git diff throw warning messages on various range operators
   (A..B, merge_commit^!, --first-parent, --pretty=fuller)
   * https://public-inbox.org/git/CABPp-BGg_iSx3QMc-J4Fov97v9NnAtfxZGMrm3WfrGugOThjmA@mail.gmail.com/
@@ -16,8 +94,6 @@
 
 * Avoid checkout during in-progress commands
   * https://public-inbox.org/git/CABPp-BHramOjqpH0Rz-PEKbi0TX_sKOYvLiZ2Pb=hEpViaShmw@mail.gmail.com/
-
-* Clean up diff3-style merge base marker to not assume merge base was virtual
 
 * Recreate mass merge comparison script
   * Partially described at https://public-inbox.org/git/CABPp-BG632JPG0CMfjgDu6kLx-QK9o0B5D-Xpp-0hDCN2X9X=A@mail.gmail.com/
@@ -91,19 +167,7 @@
        (O matches A).  No renames are detected.  As such, a/foo won't get
        renamed to c/foo.]
 
-* GVFS-like experience
-  * git-bomb repo (add object, add tree with 10 entries all pointing to that
-    object with different names, then another tree with 10 entries all pointing
-    to that tree with 10 different names, etc. until we have 1M trees)
-  * sparse checkout pattern that ignores nearly all paths
-  * small modification to oid_object_info_extended() to add a short pause
-  * Use this repo to time operations; checkout new branch, merge, etc.
-
 * flag/command-name consistency
-  * Implement cherry-pick --skip
-  * Make commit error message during rebase or cherry-pick show 'rebase --skip'
-    or 'cherry-pick --skip' as advice rather than 'If you wish to skip this...
-    git reset'
   * sequencer.c:create_seq_dir():
       error(_("a cherry-pick or revert is already in progress"));
       advise(_("try \"git cherry-pick (--continue | --quit | --abort)\""));
@@ -112,18 +176,14 @@
     as hint; it should show 'git rebase --show-current-patch'.
 
 * rebase consistency
-  * Make git commit mention {rebase,cherry-pick} --skip instead of reset
   * Add rebase --empty={drop,halt,keep}
   * Remove (as much as possible) call to `rev-list --cherry-pick ...`
     * See https://public-inbox.org/git/nycvar.QRO.7.76.6.1901211635080.41@tvgsbejvaqbjf.bet/
   * Implement missing flags
-    * Implement --ignore-space-change/--ignore-whitespace by transliterating
-      to -Xignore-space-change
+    * Fix bugs in -Xignore-space-change (and apply's --ignore-whitespace?)
     * Implement --whitespace
-    * Implement --comitter-date-is-author-date
-    * Implement -C4
+    * Implement -C4 (accept it and do nothing because it makes no sense)
   * Add --am flag
-  * Do heavy testing of performance of am vs. interactive machinery
   * Change default to interactive machinery
   * Make rebase rewrite commit messages that refer to old commits that were
     also rebased; rationale:
@@ -280,6 +340,7 @@
     * merge-rewrite
     * super-quiet merge output
   * affects: merge commits, revert commits, and cherry-pick'ed commits
+  * Possible good example testcase: https://grsecurity.net/teardown_of_a_failed_linux_lts_spectre_fix.php
   * challenges:
     * https://public-inbox.org/git/CABPp-BEsTOZ-tCvG1y5a0qPB8xJLLa0obyTU===mBgXC1jXgFA@mail.gmail.com/
   * forcibly create tree to diff from
