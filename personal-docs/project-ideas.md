@@ -393,58 +393,6 @@
     * fix cherry-picked, then reverted in one branch, then branches merged
     * commit cherry-picked, then additional changes on same lines on one side
 
-* filter-repo: a much better replacement for filter-branch (and maybe BFG??)
-  * Other flags of filter-branch to consider implementing
-    * --parent-callback
-      given original_id as parameter, return new id
-    * --parent-filter
-      * Provide commit and parents, space separated, on input
-      * Read back commit and new parents, space separated, on output
-      * Check that user didn't introduce cycles; may be hard...
-        * Early version, require that new parents are in ancestry of commit
-  * Stuff from BFG that would be good
-    * -b/--strip-blobs-bigger-than $SIZE
-  * Stuff from BFG that's stupid
-    * --private (See issue #139)
-    * -p/--protect-blobs-from/--no-blob-protection
-      * Save treeids of all branches at start (maybe in some special ref?)
-      * At end, check if branches have same tree-id; if not, warn user
-  * Stuff from BFG to consider
-    * -B/--strip-biggest-blobs $NUM
-    * -bi/--strip-blobs-with-ids $FILENAME
-    * -D/--delete-files $BASENAME_GLOB
-    * --delete-folders $BASENAME_GLOB
-    * --convert-to-git-lfs $BASENAME_GLOB
-    * --replace-text $EXPRESSIONS_FILE
-    * --filter-content-including $BASENAME_GLOB (limit where other filters apply)
-    * --filter-content-excluding $BASENAME_GLOB (limit where other filters apply)
-    * --filter-content-size-threshold $SIZE (limit where other filters apply)
-    * --massive-non-file-objects-sized-up-to $SIZE
-    * $REPO ?? (possibly incompatible with revision args)
-  * New filters
-    * --branch-name-stream-filter (similar to --tag-name-stream-filter)
-      * If a commit only has paths for which we already have oldpath->newpath
-        mappings, skip re-running the new mapping check
-    * For --path-stream-filter:
-      * Just pipe filenames, one per line, into command and read them back
-      * Never repeat a filename
-      * Aborts if any filename has a newline
-    * Special flags to make these easy (sometimes hard with fast-export):
-      * Rewrite only a range of commits, but keep parents outside of range
-        1) git fast-export --no-data --export-marks=known --signed-tags=strip \
-	   $OLDER_REVS
-        2) git fast-export --no-data --import-marks=known \
-	   $NEWER_REVS --not $OLDER_REVS >out
-        3) cat out | transform_program | git fast-import --quiet --force \
-	   --import-marks=known --force
-      * Rewrite a range of commits, orphan any that had parents outside range
-      * Move entire repo into a subdirectory
-    * --content-filter
-      * Maybe? Receive object content on stdin, put new object content on stdout
-      * Maybe? Receive filename as argv[1], then overwrite (exec'ed repeatedly)
-    * Other ideas
-      * mode handling?  deleting symlinks?
-
 * deprecate and error on `git diff A..B`:
   * https://public-inbox.org/git/xmqqmumy6mxe.fsf@gitster-ct.c.googlers.com/
 
