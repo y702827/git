@@ -91,6 +91,7 @@
   * https://public-inbox.org/git/CABPp-BGg_iSx3QMc-J4Fov97v9NnAtfxZGMrm3WfrGugOThjmA@mail.gmail.com/
   * https://public-inbox.org/git/CABPp-BECj___HneAYviE3SB=wU6OTcBi3S=+Un1sP6L4WJ7agA@mail.gmail.com/
   * https://public-inbox.org/git/CABPp-BE1fQs99ipi9Y8gfQO3QHkxzQhn1uriEbj6YjdYH839eQ@mail.gmail.com/
+  * https://public-inbox.org/git/xmqqmumy6mxe.fsf@gitster-ct.c.googlers.com/
 
 * Avoid checkout during in-progress commands
   * https://public-inbox.org/git/CABPp-BHramOjqpH0Rz-PEKbi0TX_sKOYvLiZ2Pb=hEpViaShmw@mail.gmail.com/
@@ -482,9 +483,6 @@
   * Improved merges:
     * fix cherry-picked, then reverted in one branch, then branches merged
     * commit cherry-picked, then additional changes on same lines on one side
-
-* deprecate and error on `git diff A..B`:
-  * https://public-inbox.org/git/xmqqmumy6mxe.fsf@gitster-ct.c.googlers.com/
 
 * fix gc wonkiness
   * gc fails for folks for lack of disk space.  Sometimes running prune
