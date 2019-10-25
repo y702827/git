@@ -109,6 +109,23 @@
     * filter rename_src list when possible
   * avoid O(N^2) rename detection, if file basename is good enough hint
     * have to avoid breaking directory rename detection
+  * avoid repeated O(N^2) rename detection
+    * during cherry-pick of series or a rebase, when we detect that foo->bar
+      on HEAD side and pick side modifies foo, record somewhere that
+      HEAD:foo -> (3-way-merged):bar is a rename, so when we go to do the
+      next pick we don't have to re-detect the foo->bar rename.
+    * Note: any further changes to bar other than a delete/rename shouldn't
+      break the rename pairing either; modifications of files whose names
+      don't change never lead to an assumption that the file is unrelated to
+      a file with the same name from long ago no matter the number of
+      intervening commits (because we don't do break detection).
+    * similar, if old/foo->new/foo on HEAD side and pick does NOT modify
+      old/foo, we still (except for trivial tree merge cases) need to detect
+      the rename.  But we could record it after the first pick so that we
+      don't need to re-detect it for subsequent commits.
+    * Note: If foo->bar on pick side, then the next pick will have all three
+      versions of the file named 'bar' (unless the next pick renames it again),
+      so there is no need to store any rename info.
   * avoid O(N^2) rename detection: Use Bloom Filters, MinHash, LSH, or SimHash
     See https://public-inbox.org/git/nycvar.QRO.7.76.6.1901211635080.41@tvgsbejvaqbjf.bet/
         https://en.wikipedia.org/wiki/MinHash
