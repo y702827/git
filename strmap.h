@@ -2,9 +2,15 @@
 #define STRMAP_H
 
 #include "hashmap.h"
+#include "string-list.h"
 
 struct strmap {
 	struct hashmap map;
+};
+
+struct str_entry {
+	struct hashmap_entry ent;
+	struct string_list_item item;
 };
 
 #define STRMAP_INIT { { NULL } }
@@ -46,5 +52,15 @@ int strmap_contains(struct strmap *map, const char *str);
  * strmap, the list is not altered.
  */
 void strmap_remove(struct strmap *map, const char *str, int free_value);
+
+/*
+ * iterate through @map using @iter, @var is a pointer to a type str_entry
+ */
+#define strmap_for_each_entry(mystrmap, iter, var)	\
+	for (var = hashmap_iter_first_entry_offset(&mystrmap->map, iter,  \
+						   OFFSETOF_VAR(var, ent)); \
+		var; \
+		var = hashmap_iter_next_entry_offset(iter, \
+						OFFSETOF_VAR(var, ent)))
 
 #endif /* STRMAP_H */

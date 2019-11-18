@@ -1,11 +1,5 @@
 #include "git-compat-util.h"
 #include "strmap.h"
-#include "string-list.h"
-
-struct str_entry {
-	struct hashmap_entry ent;
-	struct string_list_item item;
-};
 
 static int cmp_str_entry(const void *hashmap_cmp_fn_data,
 			 const struct hashmap_entry *entry1,
