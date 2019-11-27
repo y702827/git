@@ -22,9 +22,10 @@ static struct str_entry *find_str_entry(struct strmap *map,
 	return hashmap_get_entry(&map->map, &entry, ent, NULL);
 }
 
-void strmap_init(struct strmap *map)
+void strmap_init(struct strmap *map, int strdup_strings)
 {
 	hashmap_init(&map->map, cmp_str_entry, NULL, 0);
+	map->strdup_strings = strdup_strings;
 }
 
 void strmap_clear(struct strmap *map, int free_util)
@@ -36,7 +37,8 @@ void strmap_clear(struct strmap *map, int free_util)
 		return;
 
 	hashmap_for_each_entry(&map->map, &iter, e, ent /* member name */) {
-		free(e->item.string);
+		if (map->strdup_strings)
+			free(e->item.string);
 		if (free_util)
 			free(e->item.util);
 	}
@@ -44,20 +46,33 @@ void strmap_clear(struct strmap *map, int free_util)
 }
 
 /*
- * Insert "str" into the map, pointing to "data". A copy of "str" is made, so
- * it does not need to persist after the this function is called.
+ * Insert "str" into the map, pointing to "data".
  *
  * If an entry for "str" already exists, its data pointer is overwritten, and
  * the original data pointer returned. Otherwise, returns NULL.
  */
-void *strmap_put(struct strmap *map, const char *str, void *data)
+struct str_entry *strmap_put(struct strmap *map, const char *str, void *data)
 {
-	struct str_entry *entry;
-	entry = xmalloc(sizeof(*entry));
-	hashmap_entry_init(&entry->ent, strhash(str));
-	entry->item.string = strdup(str);
-	entry->item.util = data;
-	return hashmap_put(&map->map, &entry->ent);
+	struct str_entry *entry = find_str_entry(map, str);
+	void *old = NULL;
+
+	if (entry) {
+		old = entry->item.util;
+		entry->item.util = data;
+	} else {
+		entry = xmalloc(sizeof(*entry));
+		hashmap_entry_init(&entry->ent, strhash(str));
+		/*
+		 * We won't modify entry->item.string so it really should be
+		 * const, but changing string_list_item to use a const char *
+		 * is a bit too big of a change at this point.
+		 */
+		entry->item.string =
+			map->strdup_strings ? strdup(str) : (char *)str;
+		entry->item.util = data;
+		hashmap_add(&map->map, &entry->ent);
+	}
+	return old;
 }
 
 void *strmap_get(struct strmap *map, const char *str)
@@ -77,6 +92,8 @@ void strmap_remove(struct strmap *map, const char *str, int free_util)
 	hashmap_entry_init(&entry.ent, strhash(str));
 	entry.item.string = (char *)str;
 	ret = hashmap_remove_entry(&map->map, &entry, ent, NULL);
+	if (map->strdup_strings)
+		free(ret->item.string);
 	if (ret && free_util)
 		free(ret->item.util);
 }
