@@ -55,10 +55,18 @@ int strmap_contains(struct strmap *map, const char *str);
 void strmap_remove(struct strmap *map, const char *str, int free_value);
 
 /*
+ * Return whether the strmap is empty.
+ */
+static inline int strmap_empty(struct strmap *map)
+{
+	return hashmap_get_size(&map->map) == 0;
+}
+
+/*
  * iterate through @map using @iter, @var is a pointer to a type str_entry
  */
 #define strmap_for_each_entry(mystrmap, iter, var)	\
-	for (var = hashmap_iter_first_entry_offset(&mystrmap->map, iter,  \
+	for (var = hashmap_iter_first_entry_offset(&(mystrmap)->map, iter, \
 						   OFFSETOF_VAR(var, ent)); \
 		var; \
 		var = hashmap_iter_next_entry_offset(iter, \
