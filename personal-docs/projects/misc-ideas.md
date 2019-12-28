@@ -23,6 +23,7 @@
   * https://public-inbox.org/git/CABPp-BECj___HneAYviE3SB=wU6OTcBi3S=+Un1sP6L4WJ7agA@mail.gmail.com/
   * https://public-inbox.org/git/CABPp-BE1fQs99ipi9Y8gfQO3QHkxzQhn1uriEbj6YjdYH839eQ@mail.gmail.com/
   * https://public-inbox.org/git/xmqqmumy6mxe.fsf@gitster-ct.c.googlers.com/
+  * https://lore.kernel.org/git/xmqqtv5q66dd.fsf@gitster-ct.c.googlers.com/
 
 * Avoid checkout during in-progress commands
   * https://public-inbox.org/git/CABPp-BHramOjqpH0Rz-PEKbi0TX_sKOYvLiZ2Pb=hEpViaShmw@mail.gmail.com/
@@ -36,15 +37,10 @@
     as hint; it should show 'git rebase --show-current-patch'.
 
 * rebase consistency
-  * Add rebase --empty={drop,halt,keep}
-  * Remove (as much as possible) call to `rev-list --cherry-pick ...`
-    * See https://public-inbox.org/git/nycvar.QRO.7.76.6.1901211635080.41@tvgsbejvaqbjf.bet/
   * Implement missing flags
     * Fix bugs in -Xignore-space-change (and apply's --ignore-whitespace?)
     * Implement --whitespace
     * Implement -C4 (accept it and do nothing because it makes no sense)
-  * Add --am flag
-  * Change default to interactive machinery
   * Make rebase rewrite commit messages that refer to old commits that were
     also rebased; rationale:
     - Leaving stale hashes around is rather unhelpful.  While branches that
