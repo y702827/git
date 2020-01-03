@@ -63,6 +63,14 @@ static inline int strmap_empty(struct strmap *map)
 }
 
 /*
+ * Return how many entries the strmap has.
+ */
+static inline unsigned int strmap_get_size(struct strmap *map)
+{
+	return hashmap_get_size(&map->map);
+}
+
+/*
  * iterate through @map using @iter, @var is a pointer to a type str_entry
  */
 #define strmap_for_each_entry(mystrmap, iter, var)	\
