@@ -1,5 +1,4 @@
 #include "git-compat-util.h"
-#include "cache.h"
 #include "strmap.h"
 
 static int cmp_str_entry(const void *hashmap_cmp_fn_data,
@@ -14,39 +13,19 @@ static int cmp_str_entry(const void *hashmap_cmp_fn_data,
 	return strcmp(e1->item.string, e2->item.string);
 }
 
-static int casecmp_str_entry(const void *hashmap_cmp_fn_data,
-			     const struct hashmap_entry *entry1,
-			     const struct hashmap_entry *entry2,
-			     const void *keydata)
-{
-	const struct str_entry *e1, *e2;
-
-	e1 = container_of(entry1, const struct str_entry, ent);
-	e2 = container_of(entry2, const struct str_entry, ent);
-	return strcasecmp(e1->item.string, e2->item.string);
-}
-
 static struct str_entry *find_str_entry(struct strmap *map,
 					const char *str)
 {
 	struct str_entry entry;
-
-	if (ignore_case && !map->ignore_case_override)
-		hashmap_entry_init(&entry.ent, strihash(str));
-	else
-		hashmap_entry_init(&entry.ent, strhash(str));
+	hashmap_entry_init(&entry.ent, strhash(str));
 	entry.item.string = (char *)str;
 	return hashmap_get_entry(&map->map, &entry, ent, NULL);
 }
 
-void strmap_init(struct strmap *map, int strdup_strings, int dont_ignore_case)
+void strmap_init(struct strmap *map, int strdup_strings)
 {
+	hashmap_init(&map->map, cmp_str_entry, NULL, 0);
 	map->strdup_strings = strdup_strings;
-	map->ignore_case_override = dont_ignore_case;
-	if (ignore_case && !map->ignore_case_override)
-		hashmap_init(&map->map, casecmp_str_entry, NULL, 0);
-	else
-		hashmap_init(&map->map, cmp_str_entry, NULL, 0);
 }
 
 void strmap_clear(struct strmap *map, int free_util)

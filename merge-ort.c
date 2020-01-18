@@ -1604,8 +1604,8 @@ static int merge_start(struct merge_options *opt, struct tree *head)
 	}
 
 	opt->priv = xcalloc(1, sizeof(*opt->priv));
-	strmap_init(&opt->priv->paths, 0, 0);
-	strmap_init(&opt->priv->unmerged, 0, 0);
+	strmap_init(&opt->priv->paths, 0);
+	strmap_init(&opt->priv->unmerged, 0);
 	return 0;
 }
 
