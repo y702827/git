@@ -7,6 +7,7 @@
 struct strmap {
 	struct hashmap map;
 	unsigned int strdup_strings:1;
+	unsigned int ignore_case_override:1;
 };
 
 struct str_entry {
@@ -14,14 +15,16 @@ struct str_entry {
 	struct string_list_item item;
 };
 
-#define STRMAP_INIT_NODUP { NULL, 0 }
-#define STRMAP_INIT_DUP   { NULL, 1 }
+#define STRMAP_INIT_NODUP { NULL, 0, 0 }  /* both of these assume case...     */
+#define STRMAP_INIT_DUP   { NULL, 1, 0 }  /* sensitivity based on ignore_case */
 
 /*
- * Initialize the members of the strmap, set `strdup_strings`
- * member according to the value of the second parameter.
+ * Initialize the members of the strmap, setting `strdup_strings` member
+ * according to the value of the second parameter.  case sensitive
+ * comparisons will be used if (dont_ignore_case || !ignore_case); otherwise
+ * case insensitive comparisons will be used.
  */
-void strmap_init(struct strmap *map, int strdup_strings);
+void strmap_init(struct strmap *map, int strdup_strings, int dont_ignore_case);
 
 /*
  * Remove all entries from the map, releasing any allocated resources.
