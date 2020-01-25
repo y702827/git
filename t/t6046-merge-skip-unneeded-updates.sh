@@ -71,16 +71,16 @@ test_expect_success '1a-L: Modify(A)/Modify(B), change on B subset of A' '
 
 		git checkout A^0 &&
 
-		test-tool chmtime =31337 b &&
-		test-tool chmtime -v +0 b >expected-mtime &&
+		test-tool chmtime =-1 b &&
+		test-tool chmtime --get b >old-mtime &&
 
 		GIT_MERGE_VERBOSITY=3 git merge -s recursive B^0 >out 2>err &&
 
-		test_i18ngrep "Skipped b" out &&
 		test_must_be_empty err &&
 
-		test-tool chmtime -v +0 b >actual-mtime &&
-		test_cmp expected-mtime actual-mtime &&
+		# Make sure b was NOT updated
+		test-tool chmtime --get b >new-mtime &&
+		test_cmp old-mtime new-mtime &&
 
 		git ls-files -s >index_files &&
 		test_line_count = 1 index_files &&
@@ -165,10 +165,10 @@ test_expect_success '2a-L: Modify/rename, merge into modify side' '
 
 		git checkout A^0 &&
 
+		test_path_is_missing c &&
 		GIT_MERGE_VERBOSITY=3 git merge -s recursive B^0 >out 2>err &&
 
-		test_i18ngrep ! "Skipped c" out &&
-		test_must_be_empty err &&
+		test_path_is_file c &&
 
 		git ls-files -s >index_files &&
 		test_line_count = 1 index_files &&
@@ -193,9 +193,14 @@ test_expect_success '2a-R: Modify/rename, merge into rename side' '
 
 		git checkout B^0 &&
 
+		test-tool chmtime =-1 c &&
+		test-tool chmtime --get c >old-mtime &&
 		GIT_MERGE_VERBOSITY=3 git merge -s recursive A^0 >out 2>err &&
 
-		test_i18ngrep ! "Skipped c" out &&
+		# Make sure c WAS updated
+		test-tool chmtime --get c >new-mtime &&
+		test $(cat old-mtime) -lt $(cat new-mtime) &&
+
 		test_must_be_empty err &&
 
 		git ls-files -s >index_files &&
@@ -256,16 +261,16 @@ test_expect_success '2b-L: Rename+Mod(A)/Mod(B), B mods subset of A' '
 
 		git checkout A^0 &&
 
-		test-tool chmtime =31337 c &&
-		test-tool chmtime -v +0 c >expected-mtime &&
+		test-tool chmtime =-1 c &&
+		test-tool chmtime --get c >old-mtime &&
 
 		GIT_MERGE_VERBOSITY=3 git merge -s recursive B^0 >out 2>err &&
 
-		test_i18ngrep "Skipped c" out &&
 		test_must_be_empty err &&
 
-		test-tool chmtime -v +0 c >actual-mtime &&
-		test_cmp expected-mtime actual-mtime &&
+		# Make sure c WAS updated
+		test-tool chmtime --get c >new-mtime &&
+		test_cmp old-mtime new-mtime &&
 
 		git ls-files -s >index_files &&
 		test_line_count = 1 index_files &&
@@ -361,13 +366,18 @@ test_expect_success '2c: Modify b & add c VS rename b->c' '
 
 		git checkout A^0 &&
 
+		test-tool chmtime =-1 c &&
+		test-tool chmtime --get c >old-mtime &&
 		GIT_MERGE_VERBOSITY=3 &&
 		export GIT_MERGE_VERBOSITY &&
 		test_must_fail git merge -s recursive B^0 >out 2>err &&
 
 		test_i18ngrep "CONFLICT (rename/add): Rename b->c" out &&
-		test_i18ngrep ! "Skipped c" out &&
-		test_must_be_empty err
+		test_must_be_empty err &&
+
+		# Make sure c WAS updated
+		test-tool chmtime --get c >new-mtime &&
+		test $(cat old-mtime) -lt $(cat new-mtime)
 
 		# FIXME: rename/add conflicts are horribly broken right now;
 		# when I get back to my patch series fixing it and
@@ -460,10 +470,12 @@ test_expect_success '3a-L: bq_1->foo/bq_2 on A, foo/->bar/ on B' '
 
 		git checkout A^0 &&
 
+		test_path_is_missing bar/bq &&
 		GIT_MERGE_VERBOSITY=3 git -c merge.directoryRenames=true merge -s recursive B^0 >out 2>err &&
 
-		test_i18ngrep ! "Skipped bar/bq" out &&
 		test_must_be_empty err &&
+
+		test_path_is_file bar/bq &&
 
 		git ls-files -s >index_files &&
 		test_line_count = 2 index_files &&
@@ -488,10 +500,12 @@ test_expect_success '3a-R: bq_1->foo/bq_2 on A, foo/->bar/ on B' '
 
 		git checkout B^0 &&
 
+		test_path_is_missing bar/bq &&
 		GIT_MERGE_VERBOSITY=3 git -c merge.directoryRenames=true merge -s recursive A^0 >out 2>err &&
 
-		test_i18ngrep ! "Skipped bar/bq" out &&
 		test_must_be_empty err &&
+
+		test_path_is_file bar/bq &&
 
 		git ls-files -s >index_files &&
 		test_line_count = 2 index_files &&
@@ -552,10 +566,12 @@ test_expect_success '3b-L: bq_1->foo/bq_2 on A, foo/->bar/ on B' '
 
 		git checkout A^0 &&
 
+		test_path_is_missing bar/bq &&
 		GIT_MERGE_VERBOSITY=3 git -c merge.directoryRenames=true merge -s recursive B^0 >out 2>err &&
 
-		test_i18ngrep ! "Skipped bar/bq" out &&
 		test_must_be_empty err &&
+
+		test_path_is_file bar/bq &&
 
 		git ls-files -s >index_files &&
 		test_line_count = 2 index_files &&
@@ -580,10 +596,12 @@ test_expect_success '3b-R: bq_1->foo/bq_2 on A, foo/->bar/ on B' '
 
 		git checkout B^0 &&
 
+		test_path_is_missing bar/bq &&
 		GIT_MERGE_VERBOSITY=3 git -c merge.directoryRenames=true merge -s recursive A^0 >out 2>err &&
 
-		test_i18ngrep ! "Skipped bar/bq" out &&
 		test_must_be_empty err &&
+
+		test_path_is_file bar/bq &&
 
 		git ls-files -s >index_files &&
 		test_line_count = 2 index_files &&
@@ -654,16 +672,16 @@ test_expect_failure '4a: Change on A, change on B subset of A, dirty mods presen
 		git checkout A^0 &&
 		echo "File rewritten" >b &&
 
-		test-tool chmtime =31337 b &&
-		test-tool chmtime -v +0 b >expected-mtime &&
+		test-tool chmtime =-1 b &&
+		test-tool chmtime --get b >old-mtime &&
 
 		GIT_MERGE_VERBOSITY=3 git merge -s recursive B^0 >out 2>err &&
 
-		test_i18ngrep "Skipped b" out &&
 		test_must_be_empty err &&
 
-		test-tool chmtime -v +0 b >actual-mtime &&
-		test_cmp expected-mtime actual-mtime &&
+		# Make sure b was NOT updated
+		test-tool chmtime --get b >new-mtime &&
+		test_cmp old-mtime new-mtime &&
 
 		git ls-files -s >index_files &&
 		test_line_count = 1 index_files &&
@@ -722,16 +740,16 @@ test_expect_success '4b: Rename+Mod(A)/Mod(B), change on B subset of A, dirty mo
 		git checkout A^0 &&
 		echo "File rewritten" >c &&
 
-		test-tool chmtime =31337 c &&
-		test-tool chmtime -v +0 c >expected-mtime &&
+		test-tool chmtime =-1 c &&
+		test-tool chmtime --get c >old-mtime &&
 
 		GIT_MERGE_VERBOSITY=3 git merge -s recursive B^0 >out 2>err &&
 
-		test_i18ngrep "Skipped c" out &&
 		test_must_be_empty err &&
 
-		test-tool chmtime -v +0 c >actual-mtime &&
-		test_cmp expected-mtime actual-mtime &&
+		# Make sure c was NOT updated
+		test-tool chmtime --get c >new-mtime &&
+		test_cmp old-mtime new-mtime &&
 
 		git ls-files -s >index_files &&
 		test_line_count = 1 index_files &&
