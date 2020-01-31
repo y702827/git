@@ -306,8 +306,8 @@ test_expect_success 'Rename+D/F conflict; renamed file merges + dir not in way' 
 	git merge --strategy=recursive dir-not-in-way &&
 
 	git diff --quiet &&
-	test -f dir &&
-	printf "1\n2\n3\n4\n5555\n6\n7\n8\n9\n10\n11\n" >expected &&
+	test_path_is_file dir &&
+	test_write_lines 1 2 3 4 5555 6 7 8 9 10 11 >expected &&
 	test_cmp expected dir
 '
 
@@ -327,8 +327,8 @@ test_expect_success 'Rename+D/F conflict; renamed file merges but dir in way' '
 	test_must_fail git diff --quiet &&
 	test_must_fail git diff --cached --quiet &&
 
-	test -f dir/file-in-the-way &&
-	test -f dir~HEAD &&
+	test_path_is_file dir/file-in-the-way &&
+	test_path_is_file dir~HEAD &&
 	test_cmp expected dir~HEAD
 '
 
@@ -349,8 +349,8 @@ test_expect_success 'Same as previous, but merged other way' '
 	test_must_fail git diff --quiet &&
 	test_must_fail git diff --cached --quiet &&
 
-	test -f dir/file-in-the-way &&
-	test -f dir~renamed-file-has-no-conflicts &&
+	test_path_is_file dir/file-in-the-way &&
+	test_path_is_file dir~renamed-file-has-no-conflicts &&
 	test_cmp expected dir~renamed-file-has-no-conflicts
 '
 
@@ -366,7 +366,7 @@ test_expect_success 'Rename+D/F conflict; renamed file cannot merge, dir not in 
 	test_must_fail git diff --quiet &&
 	test_must_fail git diff --cached --quiet &&
 
-	test -f dir &&
+	test_path_is_file dir &&
 	cat >expected <<-\EOF &&
 	1
 	2
@@ -402,8 +402,8 @@ test_expect_success 'Rename+D/F conflict; renamed file cannot merge and dir in t
 	test_must_fail git diff --quiet &&
 	test_must_fail git diff --cached --quiet &&
 
-	test -f dir/file-in-the-way &&
-	test -f dir~HEAD &&
+	test_path_is_file dir/file-in-the-way &&
+	test_path_is_file dir~HEAD &&
 	test_cmp expected dir~HEAD
 '
 
@@ -420,8 +420,8 @@ test_expect_success 'Same as previous, but merged other way' '
 	test_must_fail git diff --quiet &&
 	test_must_fail git diff --cached --quiet &&
 
-	test -f dir/file-in-the-way &&
-	test -f dir~renamed-file-has-conflicts &&
+	test_path_is_file dir/file-in-the-way &&
+	test_path_is_file dir~renamed-file-has-conflicts &&
 	cat >expected <<-\EOF &&
 	1
 	2
@@ -474,9 +474,9 @@ test_expect_success 'both rename source and destination involved in D/F conflict
 
 	test_must_fail git diff --quiet &&
 
-	test -f destdir/foo &&
-	test -f one &&
-	test -f destdir~HEAD &&
+	test_path_is_file destdir/foo &&
+	test_path_is_file one &&
+	test_path_is_file destdir~HEAD &&
 	test "stuff" = "$(cat destdir~HEAD)"
 '
 
@@ -517,9 +517,9 @@ test_expect_success 'pair rename to parent of other (D/F conflicts) w/ untracked
 
 	test 4 -eq $(find . | grep -v .git | wc -l) &&
 
-	test -d one &&
-	test -f one~rename-two &&
-	test -f two &&
+	test_path_is_dir one &&
+	test_path_is_file one~rename-two &&
+	test_path_is_file two &&
 	test "other" = $(cat one~rename-two) &&
 	test "stuff" = $(cat two)
 '
@@ -537,8 +537,8 @@ test_expect_success 'pair rename to parent of other (D/F conflicts) w/ clean sta
 
 	test 3 -eq $(find . | grep -v .git | wc -l) &&
 
-	test -f one &&
-	test -f two &&
+	test_path_is_file one &&
+	test_path_is_file two &&
 	test "other" = $(cat one) &&
 	test "stuff" = $(cat two)
 '
@@ -578,11 +578,11 @@ test_expect_success 'check handling of differently renamed file with D/F conflic
 	test 1 -eq "$(git ls-files -u original | wc -l)" &&
 	test 2 -eq "$(git ls-files -o | wc -l)" &&
 
-	test -f one/file &&
-	test -f two/file &&
-	test -f one~HEAD &&
-	test -f two~second-rename &&
-	! test -f original
+	test_path_is_file one/file &&
+	test_path_is_file two/file &&
+	test_path_is_file one~HEAD &&
+	test_path_is_file two~second-rename &&
+	test_path_is_missing original
 '
 
 test_expect_success 'setup rename one file to two; directories moving out of the way' '
@@ -617,9 +617,9 @@ test_expect_success 'check handling of differently renamed file with D/F conflic
 	test 1 -eq "$(git ls-files -u original | wc -l)" &&
 	test 0 -eq "$(git ls-files -o | wc -l)" &&
 
-	test -f one &&
-	test -f two &&
-	! test -f original
+	test_path_is_file one &&
+	test_path_is_file two &&
+	test_path_is_missing original
 '
 
 test_expect_success 'setup avoid unnecessary update, normal rename' '
