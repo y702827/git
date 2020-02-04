@@ -26,6 +26,11 @@ void strmap_init(struct strmap *map, int strdup_strings);
 /*
  * Remove all entries from the map, releasing any allocated resources.
  */
+void strmap_free(struct strmap *map, int free_values);
+
+/*
+ * Same as calling strmap_free() followed by strmap_init().
+ */
 void strmap_clear(struct strmap *map, int free_values);
 
 /*

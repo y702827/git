@@ -28,7 +28,7 @@ void strmap_init(struct strmap *map, int strdup_strings)
 	map->strdup_strings = strdup_strings;
 }
 
-void strmap_clear(struct strmap *map, int free_util)
+void strmap_free(struct strmap *map, int free_util)
 {
 	struct hashmap_iter iter;
 	struct str_entry *e;
@@ -43,6 +43,12 @@ void strmap_clear(struct strmap *map, int free_util)
 			free(e->item.util);
 	}
 	hashmap_free_entries(&map->map, struct str_entry, ent);
+}
+
+void strmap_clear(struct strmap *map, int free_util)
+{
+	strmap_free(map, free_util);
+	strmap_init(map, map->strdup_strings);
 }
 
 /*
