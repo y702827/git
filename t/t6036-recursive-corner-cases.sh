@@ -537,9 +537,8 @@ test_expect_success 'setup differently handled merges of directory/file conflict
 
 		git checkout B^0 &&
 		test_must_fail git merge C^0 &&
-		git clean -fd &&
 		git rm -rf a/ &&
-		git rm a &&
+		git rm a~HEAD &&
 		git cat-file -p B:a >a2 &&
 		git add a2 &&
 		git commit -m D2 &&
@@ -558,7 +557,7 @@ test_expect_success 'setup differently handled merges of directory/file conflict
 
 		git checkout C^0 &&
 		test_must_fail git merge B^0 &&
-		git clean -fd &&
+		git rm a~B^0 &&
 		git rm -rf a/ &&
 		test_write_lines 1 2 3 4 5 6 7 8 >a &&
 		git add a &&
@@ -567,9 +566,8 @@ test_expect_success 'setup differently handled merges of directory/file conflict
 
 		git checkout C^0 &&
 		test_must_fail git merge B^0 &&
-		git clean -fd &&
 		git rm -rf a/ &&
-		git rm a &&
+		git rm a~B^0 &&
 		test_write_lines 1 2 3 4 5 6 7 8 >a2 &&
 		git add a2 &&
 		git commit -m E4 &&
