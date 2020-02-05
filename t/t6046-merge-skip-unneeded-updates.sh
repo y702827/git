@@ -102,9 +102,14 @@ test_expect_success '1a-R: Modify(A)/Modify(B), change on B subset of A' '
 
 		git checkout B^0 &&
 
+		test-tool chmtime =-1 b &&
+		test-tool chmtime --get b >old-mtime &&
 		GIT_MERGE_VERBOSITY=3 git merge -s recursive A^0 >out 2>err &&
 
-		test_i18ngrep "Auto-merging b" out &&
+		# Make sure b WAS updated
+		test-tool chmtime --get b >new-mtime &&
+		test $(cat old-mtime) -lt $(cat new-mtime) &&
+
 		test_must_be_empty err &&
 
 		git ls-files -s >index_files &&
@@ -263,7 +268,6 @@ test_expect_success '2b-L: Rename+Mod(A)/Mod(B), B mods subset of A' '
 
 		test-tool chmtime =-1 c &&
 		test-tool chmtime --get c >old-mtime &&
-
 		GIT_MERGE_VERBOSITY=3 git merge -s recursive B^0 >out 2>err &&
 
 		test_must_be_empty err &&
@@ -295,9 +299,12 @@ test_expect_success '2b-R: Rename+Mod(A)/Mod(B), B mods subset of A' '
 
 		git checkout B^0 &&
 
+		test_path_is_missing c &&
 		GIT_MERGE_VERBOSITY=3 git merge -s recursive A^0 >out 2>err &&
 
-		test_i18ngrep "Auto-merging c" out &&
+		# Make sure c now present (and thus was updated)
+		test_path_is_file c &&
+
 		test_must_be_empty err &&
 
 		git ls-files -s >index_files &&
