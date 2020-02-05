@@ -452,7 +452,7 @@ test_expect_success 'git detects conflict merging criss-cross+modify/delete, rev
 #
 # So choice 5 at least provides some kind of conflict for the original case,
 # and can merge cleanly as expected with D1 and E3.  It also made things just
-# slightly funny for merging D1 and e$, where E4 is defined as:
+# slightly funny for merging D1 and E4, where E4 is defined as:
 #   Commit E4: Merge B & C, modifying 'a' and renaming to 'a2', and deleting 'a/'
 # in this case, we'll get a rename/rename(1to2) conflict because a~$UNIQUE
 # gets renamed to 'a' in D1 and to 'a2' in E4.  But that's better than having
@@ -586,16 +586,16 @@ test_expect_success 'merge of D1 & E1 fails but has appropriate contents' '
 		test_must_fail git merge -s recursive E1^0 &&
 
 		git ls-files -s >out &&
-		test_line_count = 2 out &&
+		test_line_count = 3 out &&
 		git ls-files -u >out &&
-		test_line_count = 1 out &&
+		test_line_count = 2 out &&
 		git ls-files -o >out &&
 		test_line_count = 1 out &&
 
 		git rev-parse >expect    \
-			A:ignore-me  B:a &&
+			A:ignore-me  B:a  D1:a &&
 		git rev-parse   >actual   \
-			:0:ignore-me :2:a &&
+			:0:ignore-me :1:a :2:a &&
 		test_cmp expect actual
 	)
 '
@@ -611,16 +611,16 @@ test_expect_success 'merge of E1 & D1 fails but has appropriate contents' '
 		test_must_fail git merge -s recursive D1^0 &&
 
 		git ls-files -s >out &&
-		test_line_count = 2 out &&
+		test_line_count = 3 out &&
 		git ls-files -u >out &&
-		test_line_count = 1 out &&
+		test_line_count = 2 out &&
 		git ls-files -o >out &&
 		test_line_count = 1 out &&
 
-		git rev-parse >expect    \
-			A:ignore-me  B:a &&
-		git rev-parse   >actual   \
-			:0:ignore-me :3:a &&
+		git rev-parse >expect          \
+			A:ignore-me  B:a  D1:a &&
+		git rev-parse   >actual        \
+			:0:ignore-me :1:a :3:a &&
 		test_cmp expect actual
 	)
 '
@@ -636,16 +636,16 @@ test_expect_success 'merge of D1 & E2 fails but has appropriate contents' '
 		test_must_fail git merge -s recursive E2^0 &&
 
 		git ls-files -s >out &&
-		test_line_count = 4 out &&
+		test_line_count = 5 out &&
 		git ls-files -u >out &&
-		test_line_count = 3 out &&
+		test_line_count = 4 out &&
 		git ls-files -o >out &&
-		test_line_count = 2 out &&
+		test_line_count = 1 out &&
 
 		git rev-parse >expect    \
-			B:a   E2:a/file  C:a/file   A:ignore-me &&
+			B:a       D1:a      E2:a/file  C:a/file   A:ignore-me &&
 		git rev-parse   >actual   \
-			:2:a  :3:a/file  :1:a/file  :0:ignore-me &&
+			:1:a~HEAD :2:a~HEAD :3:a/file  :1:a/file  :0:ignore-me &&
 		test_cmp expect actual &&
 
 		test_path_is_file a~HEAD
@@ -663,16 +663,16 @@ test_expect_success 'merge of E2 & D1 fails but has appropriate contents' '
 		test_must_fail git merge -s recursive D1^0 &&
 
 		git ls-files -s >out &&
-		test_line_count = 4 out &&
+		test_line_count = 5 out &&
 		git ls-files -u >out &&
-		test_line_count = 3 out &&
+		test_line_count = 4 out &&
 		git ls-files -o >out &&
-		test_line_count = 2 out &&
+		test_line_count = 1 out &&
 
 		git rev-parse >expect    \
-			B:a   E2:a/file  C:a/file   A:ignore-me &&
+			B:a       D1:a      E2:a/file  C:a/file   A:ignore-me &&
 		git rev-parse   >actual   \
-			:3:a  :2:a/file  :1:a/file  :0:ignore-me &&
+			:1:a~D1^0 :3:a~D1^0 :2:a/file  :1:a/file  :0:ignore-me &&
 		test_cmp expect actual &&
 
 		test_path_is_file a~D1^0
@@ -704,7 +704,7 @@ test_expect_success 'merge of D1 & E3 succeeds' '
 	)
 '
 
-test_expect_success 'merge of D1 & E4 notifies user a and a2 are related' '
+test_expect_success 'merge of D1 & E4 puts merge of a and a2 in both a and a2' '
 	test_when_finished "git -C directory-file reset --hard" &&
 	test_when_finished "git -C directory-file clean -fdqx" &&
 	(
@@ -722,7 +722,7 @@ test_expect_success 'merge of D1 & E4 notifies user a and a2 are related' '
 		test_line_count = 1 out &&
 
 		git rev-parse >expect                  \
-			A:ignore-me  B:a   D1:a  E4:a2 &&
+			A:ignore-me  B:a   E4:a2  E4:a2 &&
 		git rev-parse   >actual                \
 			:0:ignore-me :1:a~Temporary\ merge\ branch\ 2  :2:a  :3:a2 &&
 		test_cmp expect actual
