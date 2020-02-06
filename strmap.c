@@ -81,6 +81,13 @@ struct str_entry *strmap_put(struct strmap *map, const char *str, void *data)
 	return old;
 }
 
+struct string_list_item *strmap_get_item(struct strmap *map,
+					 const char *str)
+{
+	struct str_entry *entry = find_str_entry(map, str);
+	return entry ? &entry->item : NULL;
+}
+
 void *strmap_get(struct strmap *map, const char *str)
 {
 	struct str_entry *entry = find_str_entry(map, str);

@@ -42,6 +42,12 @@ void strmap_clear(struct strmap *map, int free_values);
 struct str_entry *strmap_put(struct strmap *map, const char *str, void *data);
 
 /*
+ * Return the string_list_item mapped by "str", or NULL if there is not such
+ * an item in map.
+ */
+struct string_list_item *strmap_get_item(struct strmap *map, const char *str);
+
+/*
  * Return the data pointer mapped by "str", or NULL if the entry does not
  * exist.
  */
