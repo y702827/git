@@ -302,9 +302,9 @@ test_expect_success '1d: Directory renames cause a rename/rename(2to1) conflict'
 		git cat-file -p :3:x/wham >other &&
 		>empty &&
 		test_must_fail git merge-file \
-			-L "HEAD" \
+			-L "HEAD:y/wham" \
 			-L "" \
-			-L "B^0" \
+			-L "B^0:z/wham" \
 			expect empty other &&
 		test_cmp expect x/wham
 	)
