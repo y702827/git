@@ -1176,10 +1176,10 @@ test_expect_success '5d: Directory/file/file conflict due to directory rename' '
 		git ls-files -u >out &&
 		test_line_count = 1 out &&
 		git ls-files -o >out &&
-		test_line_count = 2 out &&
+		test_line_count = 1 out &&
 
 		git rev-parse >actual \
-			:0:y/b :0:y/c :0:z/d :0:y/f :2:y/d :0:y/d/e &&
+			:0:y/b :0:y/c :0:z/d :0:y/f :2:y/d~HEAD :0:y/d/e &&
 		git rev-parse >expect \
 			 O:z/b  O:z/c  B:z/d  B:z/f  A:y/d  B:y/d/e &&
 		test_cmp expect actual &&
@@ -1263,16 +1263,16 @@ test_expect_success '6a: Tricky rename/delete' '
 		#test_i18ngrep "CONFLICT (rename/delete).*z/c.*y/c" out &&
 
 		git ls-files -s >out &&
-		test_line_count = 2 out &&
+		test_line_count = 3 out &&
 		git ls-files -u >out &&
-		test_line_count = 1 out &&
+		test_line_count = 2 out &&
 		git ls-files -o >out &&
 		test_line_count = 1 out &&
 
 		git rev-parse >actual \
-			:0:y/b :3:y/c &&
+			:0:y/b :1:y/c :3:y/c &&
 		git rev-parse >expect \
-			 O:z/b  O:z/c &&
+			 O:z/b  O:z/c  O:z/c &&
 		test_cmp expect actual
 	)
 '
