@@ -2630,7 +2630,7 @@ static int merge_ort_nonrecursive_internal(struct merge_options *opt,
 					   struct tree *merge_base,
 					   struct tree **result)
 {
-	int code;
+	int code, clean;
 	char root_dir[1] = "\0";
 	struct diff_queue_struct pairs;
 	struct object_id working_tree_oid;
@@ -2658,9 +2658,11 @@ static int merge_ort_nonrecursive_internal(struct merge_options *opt,
 		return -1;
 	}
 
-	code = detect_and_process_renames(opt, &pairs, merge_base, head, merge);
+	clean = detect_and_process_renames(opt, &pairs, merge_base, head, merge);
 
 	process_entries(opt, &working_tree_oid);
+	clean &= strmap_empty(&opt->priv->unmerged); /* unmerged entries => unclean */
+
 	/*
 	 * FIXME: Also need to free each diff_filepair in pairs.queue, and may
 	 * also need to free each pair's one->path and/or two->path.
@@ -2668,7 +2670,7 @@ static int merge_ort_nonrecursive_internal(struct merge_options *opt,
 	if (pairs.nr)
 		free(pairs.queue);
 	*result = parse_tree_indirect(&working_tree_oid);
-	return strmap_empty(&opt->priv->unmerged); /* unmerged==0 => clean */
+	return clean;
 }
 
 static void reset_maps(struct merge_options *opt, int reinitialize);
