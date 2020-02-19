@@ -1707,9 +1707,9 @@ test_expect_success '7b: rename/rename(2to1), but only due to transitive rename'
 		git cat-file -p :3:y/d >other &&
 		>empty &&
 		test_must_fail git merge-file \
-			-L "HEAD" \
+			-L "HEAD:y/d" \
 			-L "" \
-			-L "B^0" \
+			-L "B^0:z/d" \
 			expect empty other &&
 		test_cmp expect y/d
 	)
@@ -1833,16 +1833,16 @@ test_expect_success '7d: transitive rename involved in rename/delete; how is it 
 		#test_i18ngrep "CONFLICT (rename/delete).*x/d.*y/d" out &&
 
 		git ls-files -s >out &&
-		test_line_count = 3 out &&
+		test_line_count = 4 out &&
 		git ls-files -u >out &&
-		test_line_count = 1 out &&
+		test_line_count = 2 out &&
 		git ls-files -o >out &&
 		test_line_count = 1 out &&
 
 		git rev-parse >actual \
-			:0:y/b :0:y/c :3:y/d &&
+			:0:y/b :0:y/c :1:y/d :3:y/d &&
 		git rev-parse >expect \
-			 O:z/b  O:z/c  O:x/d &&
+			 O:z/b  O:z/c  O:x/d  O:x/d &&
 		test_cmp expect actual
 	)
 '
