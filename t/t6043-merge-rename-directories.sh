@@ -1924,16 +1924,16 @@ test_expect_success '7e: transitive rename in rename/delete AND dirs in the way'
 		#test_i18ngrep "CONFLICT (rename/delete).*x/d.*y/d" out &&
 
 		git ls-files -s >out &&
-		test_line_count = 5 out &&
+		test_line_count = 6 out &&
 		git ls-files -u >out &&
-		test_line_count = 1 out &&
-		git ls-files -o >out &&
 		test_line_count = 2 out &&
+		git ls-files -o >out &&
+		test_line_count = 1 out &&
 
 		git rev-parse >actual \
-			:0:x/d/f :0:y/d/g :0:y/b :0:y/c :3:y/d &&
+			:0:x/d/f :0:y/d/g :0:y/b :0:y/c :1:y/d~B^0 :3:y/d~B^0 &&
 		git rev-parse >expect \
-			 A:x/d/f  A:y/d/g  O:z/b  O:z/c  O:x/d &&
+			 A:x/d/f  A:y/d/g  O:z/b  O:z/c  O:x/d      O:x/d &&
 		test_cmp expect actual &&
 
 		git hash-object y/d~B^0 >actual &&
