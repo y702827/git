@@ -14,7 +14,7 @@
 #include "diff.h"
 #include "revision.h"
 #include "rerere.h"
-#include "merge-recursive.h"
+#include "merge-ort.h"
 #include "refs.h"
 #include "argv-array.h"
 #include "quote.h"
@@ -611,9 +611,9 @@ static int do_recursive_merge(struct repository *r,
 	for (xopt = opts->xopts; xopt != opts->xopts + opts->xopts_nr; xopt++)
 		parse_merge_opt(&o, *xopt);
 
-	clean = merge_trees(&o,
-			    head_tree,
-			    next_tree, base_tree);
+	clean = merge_ort_nonrecursive(&o,
+				       head_tree,
+				       next_tree, base_tree);
 	if (is_rebase_i(opts) && clean <= 0)
 		fputs(o.obuf.buf, stdout);
 	strbuf_release(&o.obuf);
