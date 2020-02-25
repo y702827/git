@@ -36,7 +36,7 @@
 #if 0
 #define VERBOSE_DEBUG
 #endif
-#if 1
+#if 0
 //#error FIXME: You need to have different diff_filepairs for each side!!
 #define NEW_DIFFPAIRS
 #endif
@@ -398,6 +398,7 @@ static void collect_rename_information(struct rename_info *renames,
 			two = alloc_filespec(pi->string);
 			fill_filespec(one, &ci->stages[0].oid, 1,
 				      ci->stages[0].mode);
+			//fprintf(stderr, "Side %d deletion: %s\n", side, pi->string);
 		}
 		if (!(filemask & 1) && (filemask & side_mask)) {
 			/* File addition; may be rename target */
@@ -406,10 +407,14 @@ static void collect_rename_information(struct rename_info *renames,
 			two = alloc_filespec(pi->string);
 			fill_filespec(two, &ci->stages[side].oid, 1,
 				      ci->stages[side].mode);
+			//fprintf(stderr, "Side %d addition: %s\n", side, pi->string);
 		}
 		if (need_pair)
 			diff_queue(q, one, two);
 	}
+#else
+	(void)side;
+	(void)ci;
 #endif
 }
 
@@ -1228,12 +1233,12 @@ static int process_renames(struct merge_options *opt,
 #ifdef VERBOSE_DEBUG
 		printf("collision: %d, source_deleted: %d\n",
 		       collision, source_deleted);
-#endif
 
 		printf("  oldpath: %s, newpath: %s\n", oldpath, newpath);
 		printf("source_deleted: %d\n", source_deleted);
 		printf("oldinfo->filemask: %d\n", oldinfo->filemask);
 		printf("old_sidemask: %d\n", old_sidemask);
+#endif
 		assert(source_deleted || oldinfo->filemask & old_sidemask);
 
 		/* In all cases, mark the original as resolved by removal */
@@ -1911,6 +1916,7 @@ static void dump_conflict_info(struct conflict_info *ci, char *name)
 
 static void dump_pairs(struct diff_queue_struct *pairs, char *label)
 {
+#ifdef VERBOSE_DEBUG
 	int i;
 
 	printf("%s pairs:\n", label);
@@ -1932,6 +1938,7 @@ static void dump_pairs(struct diff_queue_struct *pairs, char *label)
 		       oid_to_hex(&pairs->queue[i]->two->oid),
 		       pairs->queue[i]->two->path);
 	}
+#endif
 }
 
 static void apply_directory_rename_modifications(struct merge_options *opt,
@@ -2161,7 +2168,9 @@ static struct diff_queue_struct *get_diffpairs(struct merge_options *opt,
 	resolve_diffpair_statuses();
 #endif
 	dump_pairs(&diff_queued_diff, "After diffcore_rename");
+#ifdef VERBOSE_DEBUG
 	printf("Done.\n");
+#endif
 	if (opts.needed_rename_limit > opt->priv->needed_rename_limit)
 		opt->priv->needed_rename_limit = opts.needed_rename_limit;
 
