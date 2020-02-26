@@ -108,4 +108,9 @@ static inline void strintmap_set(struct strmap *map, const char *str, intptr_t v
 
 void strintmap_incr(struct strmap *map, const char *str, intptr_t amt);
 
+static inline void strintmap_clear(struct strmap *map)
+{
+	strmap_clear(map, 0);
+}
+
 #endif /* STRMAP_H */
