@@ -9,6 +9,13 @@
 #include "progress.h"
 #include "strmap.h"
 
+#if 0
+#define VERBOSE_DEBUG
+#endif
+#if 0
+#define SECTION_LABEL
+#endif
+
 /* Table of rename/copy destinations */
 
 static struct diff_rename_dst {
@@ -314,6 +321,10 @@ static int find_identical_files(struct hashmap *srcs,
 			break;
 	}
 	if (best) {
+#ifdef VERBOSE_DEBUG
+		printf("  Exact rename: %s -> %s\n",
+		       rename_src[best->index].p->one->path, target->path);
+#endif
 		record_rename_pair(dst_index, best->index, MAX_SCORE);
 		renames++;
 	}
@@ -436,6 +447,12 @@ static int find_basename_matches(struct diff_options *options, int minimum_score
 			/* If sufficiently similar, record as rename pair */
 			if (score < minimum_score)
 				continue;
+#ifdef VERBOSE_DEBUG
+			printf("  Basename-matched rename: %s -> %s (%d)\n",
+			       rename_src[src_index].p->one->path,
+			       rename_dst[dst_index].two->path,
+			       score);
+#endif
 			record_rename_pair(dst_index, src_index, score);
 			renames++;
 		}
@@ -525,10 +542,40 @@ static int find_renames(struct diff_score *mx, int dst_cnt, int minimum_score, i
 			continue; /* already done, either exact or fuzzy. */
 		if (!copies && rename_src[mx[i].src].p->one->rename_used)
 			continue;
+#ifdef VERBOSE_DEBUG
+		printf("  Exhaustively-matched rename: %s -> %s (%d)\n",
+		       rename_src[mx[i].src].p->one->path,
+		       rename_dst[mx[i].dst].two->path,
+		       mx[i].score);
+#endif
 		record_rename_pair(mx[i].dst, mx[i].src, mx[i].score);
 		count++;
 	}
 	return count;
+}
+
+void dump_unmatched(void)
+{
+#ifdef VERBOSE_DEBUG
+	int i;
+
+	for (i = 0; i < rename_src_nr; ++i) {
+		char *filename = rename_src[i].p->one->path;
+
+		if (rename_src[i].p->one->rename_used)
+			continue; /* involved in exact match already */
+
+		printf("  Unmatched source: %s\n", filename);
+	}
+	for (i = 0; i < rename_dst_nr; ++i) {
+		char *filename = rename_dst[i].two->path;
+
+		if (rename_dst[i].pair)
+			continue; /* involved in exact match already. */
+
+		printf("  Unmatched target: %s\n", filename);
+	}
+#endif
 }
 
 void diffcore_rename(struct diff_options *options)
@@ -594,7 +641,13 @@ void diffcore_rename(struct diff_options *options)
 	 * We really want to cull the candidates list early
 	 * with cheap tests in order to avoid doing deltas.
 	 */
+#ifdef SECTION_LABEL
+	printf("Looking for exact renames...\n");
+#endif
 	rename_count = find_exact_renames(options);
+#ifdef SECTION_LABEL
+	printf("Done.\n");
+#endif
 
 	/* Did we only want exact renames? */
 	if (minimum_score == MAX_SCORE)
@@ -603,7 +656,13 @@ void diffcore_rename(struct diff_options *options)
 	/*
 	 * Also cull the candidates list based on basename match.
 	 */
+#ifdef SECTION_LABEL
+	printf("Looking for basename-based renames...\n");
+#endif
 	rename_count += find_basename_matches(options, minimum_score);
+#ifdef SECTION_LABEL
+	printf("Done.\n");
+#endif
 
 	/*
 	 * Calculate how many renames are left (but all the source
@@ -628,6 +687,9 @@ void diffcore_rename(struct diff_options *options)
 		break;
 	}
 
+#ifdef SECTION_LABEL
+	printf("Looking for inexact renames...\n");
+#endif
 	if (options->show_rename_progress) {
 		progress = start_delayed_progress(
 				_("Performing inexact rename detection"),
@@ -684,6 +746,11 @@ void diffcore_rename(struct diff_options *options)
 	if (detect_rename == DIFF_DETECT_COPY)
 		rename_count += find_renames(mx, dst_cnt, minimum_score, 1);
 	free(mx);
+#ifdef SECTION_LABEL
+	printf("Done.\n");
+#endif
+
+	dump_unmatched();
 
  cleanup:
 	/* At this point, we have found some renames and copies and they
