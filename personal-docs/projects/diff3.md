@@ -1,4 +1,9 @@
 * diff3 merging improvements
+  * Bug reports with existing algorithm
+    * https://lore.kernel.org/git/20190816184051.GB13894@sigill.intra.peff.net/
+    * https://lore.kernel.org/git/CABPp-BHvJHpSJT7sdFwfNcPn_sOXwJi3=o14qjZS3M8Rzcxe2A@mail.gmail.com/
+    * https://lore.kernel.org/git/CABPp-BGtez4qjbtFT1hQoREfcJPmk9MzjhY5eEq1QhXT23tFOw@mail.gmail.com/
+
   * Docs on diff3 merging style:
     * https://stackoverflow.com/questions/1203725/three-way-merge-algorithms-for-text (Provided good links, including some of those below)
     * https://en.wikipedia.org/wiki/Merge_(version_control)  (alternatives-weave)
