@@ -232,7 +232,8 @@ void hashmap_init(struct hashmap *map,
 			 const void *equals_function_data,
 			 size_t initial_size);
 
-/* internal function for freeing hashmap */
+/* internal functions for clearing or freeing hashmap */
+void hashmap_clear_(struct hashmap *map, ssize_t offset);
 void hashmap_free_(struct hashmap *map, ssize_t offset);
 
 /*
@@ -262,6 +263,11 @@ void hashmap_free_(struct hashmap *map, ssize_t offset);
 #define hashmap_free(map) hashmap_free_(map, -1)
 
 /*
+ * Leaves entries undisturbed, but zeros the hash table to empty it.
+ */
+#define hashmap_clear(map) hashmap_clear_(map, -1)
+
+/*
  * Frees @map and all entries.  @type is the struct type of the entry
  * where @member is the hashmap_entry struct used to associate with @map.
  *
@@ -269,6 +275,14 @@ void hashmap_free_(struct hashmap *map, ssize_t offset);
  */
 #define hashmap_free_entries(map, type, member) \
 	hashmap_free_(map, offsetof(type, member));
+
+/*
+ * Frees all entries of a map, but leaves its table allocated.
+ * @type is the struct type of the entry where @member is the hashmap_entry
+ * struct used to associate with @map
+ */
+#define hashmap_clear_entries(map, type, member) \
+	hashmap_clear_(map, offsetof(type, member));
 
 /* hashmap_entry functions */
 

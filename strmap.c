@@ -28,7 +28,7 @@ void strmap_init(struct strmap *map, int strdup_strings)
 	map->strdup_strings = strdup_strings;
 }
 
-void strmap_free(struct strmap *map, int free_util)
+static void strmap_free_entries_(struct strmap *map, int free_util)
 {
 	struct hashmap_iter iter;
 	struct str_entry *e;
@@ -36,21 +36,32 @@ void strmap_free(struct strmap *map, int free_util)
 	if (!map)
 		return;
 
-	if (map->strdup_strings || free_util) {
-		hashmap_for_each_entry(&map->map, &iter, e, ent) {
-			if (map->strdup_strings)
-				free(e->item.string);
-			if (free_util)
-				free(e->item.util);
-		}
+	/*
+	 * We need to iterate over the hashmap entries and free
+	 * e->item.string and e->item.util ourselves; hashmap has no API to
+	 * take care of that for us.  Since we're already iterating over
+	 * the hashmap, though, might as well free e too and avoid the need
+	 * to make some call into the hashmap API to do that.
+	 */
+	hashmap_for_each_entry(&map->map, &iter, e, ent) {
+		if (map->strdup_strings)
+			free(e->item.string);
+		if (free_util)
+			free(e->item.util);
+		free(e);
 	}
-	hashmap_free_entries(&map->map, struct str_entry, ent);
+}
+
+void strmap_free(struct strmap *map, int free_util)
+{
+	strmap_free_entries_(map, free_util);
+	hashmap_free(&map->map);
 }
 
 void strmap_clear(struct strmap *map, int free_util)
 {
-	strmap_free(map, free_util);
-	strmap_init(map, map->strdup_strings);
+	strmap_free_entries_(map, free_util);
+	hashmap_clear(&map->map);
 }
 
 /*

@@ -26,7 +26,9 @@ void strmap_init(struct strmap *map, int strdup_strings);
 void strmap_free(struct strmap *map, int free_values);
 
 /*
- * Same as calling strmap_free() followed by strmap_init().
+ * Similar to calling strmap_free() followed by strmap_init(), but slightly
+ * faster since it doesn't deallocate the hashmap array and leaves it
+ * pre-sized where it left off so that fewer rehashings are needed.
  */
 void strmap_clear(struct strmap *map, int free_values);
 
