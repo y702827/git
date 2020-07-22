@@ -1,5 +1,6 @@
 #include "git-compat-util.h"
 #include "strmap.h"
+#include "mem-pool.h"
 
 static int cmp_strmap_entry(const void *hashmap_cmp_fn_data,
 			    const struct hashmap_entry *entry1,
@@ -24,13 +25,15 @@ static struct strmap_entry *find_strmap_entry(struct strmap *map,
 
 void strmap_init(struct strmap *map)
 {
-	strmap_ocd_init(map, 1);
+	strmap_ocd_init(map, NULL, 1);
 }
 
 void strmap_ocd_init(struct strmap *map,
+		     struct mem_pool *pool,
 		     int strdup_strings)
 {
 	hashmap_init(&map->map, cmp_strmap_entry, NULL, 0);
+	map->pool = pool;
 	map->strdup_strings = strdup_strings;
 }
 
@@ -40,6 +43,10 @@ static void strmap_free_entries_(struct strmap *map, int free_util)
 	struct strmap_entry *e;
 
 	if (!map)
+		return;
+
+	if (!free_util && map->pool)
+		/* Memory other than util is owned by and freed with the pool */
 		return;
 
 	/*
@@ -52,9 +59,11 @@ static void strmap_free_entries_(struct strmap *map, int free_util)
 	hashmap_for_each_entry(&map->map, &iter, e, ent) {
 		if (free_util)
 			free(e->value);
-		if (map->strdup_strings)
-			free((char*)e->key);
-		free(e);
+		if (!map->pool) {
+			if (map->strdup_strings)
+				free((char*)e->key);
+			free(e);
+		}
 	}
 }
 
@@ -84,11 +93,13 @@ void *strmap_put(struct strmap *map, const char *str, void *data)
 		 */
 		const char *key = str;
 
-		entry = xmalloc(sizeof(*entry));
+		entry = map->pool ? mem_pool_alloc(map->pool, sizeof(*entry))
+				  : xmalloc(sizeof(*entry));
 		hashmap_entry_init(&entry->ent, strhash(str));
 
 		if (map->strdup_strings)
-			key = xstrdup(str);
+			key = map->pool ? mem_pool_strdup(map->pool, str)
+					: xstrdup(str);
 		entry->key = key;
 		entry->value = data;
 		hashmap_add(&map->map, &entry->ent);
@@ -122,9 +133,11 @@ void strmap_remove(struct strmap *map, const char *str, int free_util)
 		return;
 	if (free_util)
 		free(ret->value);
-	if (map->strdup_strings)
-		free((char*)ret->key);
-	free(ret);
+	if (!map->pool) {
+		if (map->strdup_strings)
+			free((char*)ret->key);
+		free(ret);
+	}
 }
 
 void strintmap_incr(struct strintmap *map, const char *str, intptr_t amt)

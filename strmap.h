@@ -3,8 +3,10 @@
 
 #include "hashmap.h"
 
+struct mempool;
 struct strmap {
 	struct hashmap map;
+	struct mem_pool *pool;
 	unsigned int strdup_strings:1;
 };
 
@@ -22,11 +24,12 @@ void strmap_init(struct strmap *map);
 
 /*
  * Same as strmap_init, but for those who want to control the memory management
- * carefully instead of using the default of strdup_strings=1.
+ * carefully instead of using the default of strdup_strings=1 and pool=NULL.
  * (OCD = Obsessive Compulsive Disorder, a joke that those who use this function
  * are obsessing over minor details.)
  */
 void strmap_ocd_init(struct strmap *map,
+		     struct mem_pool *pool,
 		     int strdup_strings);
 
 /*
@@ -126,9 +129,10 @@ static inline void strintmap_init(struct strintmap *map)
 }
 
 static inline void strintmap_ocd_init(struct strintmap *map,
+				      struct mem_pool *pool,
 				      int strdup_strings)
 {
-	strmap_ocd_init(&map->map, strdup_strings);
+	strmap_ocd_init(&map->map, pool, strdup_strings);
 }
 
 static inline void strintmap_clear(struct strintmap *map)
@@ -202,9 +206,10 @@ static inline void strset_init(struct strset *set)
 }
 
 static inline void strset_ocd_init(struct strset *set,
+				   struct mem_pool *pool,
 				   int strdup_strings)
 {
-	strmap_ocd_init(&set->map, strdup_strings);
+	strmap_ocd_init(&set->map, pool, strdup_strings);
 }
 
 static inline void strset_clear(struct strset *set)
