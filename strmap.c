@@ -64,6 +64,8 @@ void strmap_clear(struct strmap *map, int free_util)
 	hashmap_clear(&map->map);
 }
 
+extern int strmap_put_calls;
+
 /*
  * Insert "str" into the map, pointing to "data".
  *
@@ -79,6 +81,7 @@ void *strmap_put(struct strmap *map, const char *str, void *data)
 		old = entry->item.util;
 		entry->item.util = data;
 	} else {
+		++strmap_put_calls;
 		entry = xmalloc(sizeof(*entry));
 		hashmap_entry_init(&entry->ent, strhash(str));
 		/*
