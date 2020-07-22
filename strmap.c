@@ -1,5 +1,6 @@
 #include "git-compat-util.h"
 #include "strmap.h"
+#include "mem-pool.h"
 
 static int cmp_str_entry(const void *hashmap_cmp_fn_data,
 			 const struct hashmap_entry *entry1,
@@ -25,7 +26,16 @@ static struct str_entry *find_str_entry(struct strmap *map,
 void strmap_init(struct strmap *map, int strdup_strings)
 {
 	hashmap_init(&map->map, cmp_str_entry, NULL, 0);
+	map->pool = NULL;
 	map->strdup_strings = strdup_strings;
+}
+
+void strmap_init_with_mem_pool(struct strmap *map,
+			       struct mem_pool *pool,
+			       int strdup_strings)
+{
+	strmap_init(map, strdup_strings);
+	map->pool = pool;
 }
 
 static void strmap_free_entries_(struct strmap *map, int free_util)
@@ -36,6 +46,10 @@ static void strmap_free_entries_(struct strmap *map, int free_util)
 	if (!map)
 		return;
 
+	if (!free_util && map->pool)
+		/* Memory other than util is owned by and freed with the pool */
+		return;
+
 	/*
 	 * We need to iterate over the hashmap entries and free
 	 * e->item.string and e->item.util ourselves; hashmap has no API to
@@ -44,11 +58,13 @@ static void strmap_free_entries_(struct strmap *map, int free_util)
 	 * to make some call into the hashmap API to do that.
 	 */
 	hashmap_for_each_entry(&map->map, &iter, e, ent) {
-		if (map->strdup_strings)
-			free(e->item.string);
 		if (free_util)
 			free(e->item.util);
-		free(e);
+		if (!map->pool) {
+			if (map->strdup_strings)
+				free(e->item.string);
+			free(e);
+		}
 	}
 }
 
@@ -79,15 +95,21 @@ void *strmap_put(struct strmap *map, const char *str, void *data)
 		old = entry->item.util;
 		entry->item.util = data;
 	} else {
-		entry = xmalloc(sizeof(*entry));
-		hashmap_entry_init(&entry->ent, strhash(str));
 		/*
 		 * We won't modify entry->item.string so it really should be
 		 * const, but changing string_list_item to use a const char *
 		 * is a bit too big of a change at this point.
 		 */
-		entry->item.string =
-			map->strdup_strings ? xstrdup(str) : (char *)str;
+		char *key = (char *)str;
+
+		entry = map->pool ? mem_pool_alloc(map->pool, sizeof(*entry))
+				  : xmalloc(sizeof(*entry));
+		hashmap_entry_init(&entry->ent, strhash(str));
+
+		if (map->strdup_strings)
+			key = map->pool ? mem_pool_strdup(map->pool, str)
+					: xstrdup(str);
+		entry->item.string = key;
 		entry->item.util = data;
 		hashmap_add(&map->map, &entry->ent);
 	}
@@ -118,11 +140,15 @@ void strmap_remove(struct strmap *map, const char *str, int free_util)
 	hashmap_entry_init(&entry.ent, strhash(str));
 	entry.item.string = (char *)str;
 	ret = hashmap_remove_entry(&map->map, &entry, ent, NULL);
-	if (map->strdup_strings)
-		free(ret->item.string);
-	if (ret && free_util)
+	if (!ret)
+		return;
+	if (free_util)
 		free(ret->item.util);
-	free(ret);
+	if (!map->pool) {
+		if (map->strdup_strings)
+			free(ret->item.string);
+		free(ret);
+	}
 }
 
 void strintmap_incr(struct strmap *map, const char *str, intptr_t amt)

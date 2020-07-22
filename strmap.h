@@ -4,8 +4,10 @@
 #include "hashmap.h"
 #include "string-list.h"
 
+struct mempool;
 struct strmap {
 	struct hashmap map;
+	struct mem_pool *pool;
 	unsigned int strdup_strings:1;
 };
 
@@ -19,6 +21,17 @@ struct str_entry {
  * member according to the value of the second parameter.
  */
 void strmap_init(struct strmap *map, int strdup_strings);
+
+/*
+ * Same as strmap_init, but also set the strmap to use a mempool for
+ * allocating str_entry structs.  (Note that the hashmap never allocates
+ * the data fields passed to strmap_put(), so those will not be affected
+ * by the mempool; just the allocation of str_entry fields, and any
+ * strdup calls if strdup_strings is true.)
+ */
+void strmap_init_with_mem_pool(struct strmap *map,
+			       struct mem_pool *pool,
+			       int strdup_strings);
 
 /*
  * Remove all entries from the map, releasing any allocated resources.
