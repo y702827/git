@@ -3859,7 +3859,7 @@ test_setup_12b () {
 	)
 }
 
-test_expect_success '12b: Moving two directory hierarchies into each other' '
+test_expect_failure '12b: Moving two directory hierarchies into each other' '
 	test_setup_12b &&
 	(
 		cd 12b &&
