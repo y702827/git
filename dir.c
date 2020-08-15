@@ -921,6 +921,10 @@ void clear_pattern_list(struct pattern_list *pl)
 		free(pl->patterns[i]);
 	free(pl->patterns);
 	free(pl->filebuf);
+	hashmap_free_(&pl->parent_hashmap,
+		      offsetof(struct pattern_entry, ent));
+	hashmap_free_(&pl->recursive_hashmap,
+		      offsetof(struct pattern_entry, ent));
 
 	memset(pl, 0, sizeof(*pl));
 }
