@@ -4183,8 +4183,6 @@ struct commit *get_revision(struct rev_info *revs)
 			free_commit_list(revs->previous_parents);
 			revs->previous_parents = NULL;
 		}
-		free_commit_list(revs->commits);
-		revs->commits = NULL;
 	}
 	return c;
 }
