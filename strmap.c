@@ -151,9 +151,9 @@ void strmap_remove(struct strmap *map, const char *str, int free_util)
 	}
 }
 
-void strintmap_incr(struct strmap *map, const char *str, intptr_t amt)
+void strintmap_incr(struct strintmap *map, const char *str, intptr_t amt)
 {
-	struct str_entry *entry = find_str_entry(map, str);
+	struct str_entry *entry = find_str_entry(&map->map, str);
 	if (entry) {
 		intptr_t *whence = (intptr_t*)&entry->item.util;
 		*whence += amt;

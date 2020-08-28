@@ -103,36 +103,91 @@ static inline unsigned int strmap_get_size(struct strmap *map)
 		var = hashmap_iter_next_entry_offset(iter, \
 						OFFSETOF_VAR(var, ent)))
 
+
 /*
- * Helper functions for using strmap as map of string -> int, using the void*
- * field to store the int instead of allocating an int and having the void*
- * member point to the allocated int.
+ * strintmap:
+ *    A map of string -> int, typecasting the void* of strmap to an int.
+ *
+ * Primary differences:
+ *    1) Since the void* value is just an int in disguise, there is no value
+ *       to free.  (Thus one fewer argument to strintmap_free & strintmap_clear)
+ *    2) strintmap_get() returns an int; it also requires an extra parameter to
+ *       be specified so it knows what value to return if the underlying strmap
+ *       has not key matching the given string.
+ *    3) No strmap_put() equivalent; strintmap_set() and strintmap_incr()
+ *       instead.
  */
 
-static inline int strintmap_get(struct strmap *map, const char *str,
+struct strintmap {
+	struct strmap map;
+};
+
+#define strintmap_for_each_entry(mystrmap, iter, var)	\
+	strmap_for_each_entry(&(mystrmap)->map, iter, var)
+#if 0
+	for (var = hashmap_iter_first_entry_offset(&(mystrmap)->map.map, iter, \
+						   OFFSETOF_VAR(var, ent)); \
+		var; \
+		var = hashmap_iter_next_entry_offset(iter, \
+						OFFSETOF_VAR(var, ent)))
+#endif
+
+static inline void strintmap_init(struct strintmap *map, int strdup_strings)
+{
+	strmap_init(&map->map, strdup_strings);
+}
+
+static inline void strintmap_init_with_mem_pool(struct strintmap *map,
+						struct mem_pool *pool,
+						int strdup_strings)
+{
+	strmap_init_with_mem_pool(&map->map, pool, strdup_strings);
+}
+
+static inline void strintmap_free(struct strintmap *map)
+{
+	strmap_free(&map->map, 0);
+}
+
+static inline void strintmap_clear(struct strintmap *map)
+{
+	strmap_clear(&map->map, 0);
+}
+
+static inline int strintmap_contains(struct strintmap *map, const char *str)
+{
+	return strmap_contains(&map->map, str);
+}
+
+static inline void strintmap_remove(struct strintmap *map, const char *str)
+{
+	return strmap_remove(&map->map, str, 0);
+}
+
+static inline int strintmap_empty(struct strintmap *map)
+{
+	return strmap_empty(&map->map);
+}
+
+static inline unsigned int strintmap_get_size(struct strintmap *map)
+{
+	return strmap_get_size(&map->map);
+}
+
+static inline int strintmap_get(struct strintmap *map, const char *str,
 				int default_value)
 {
-	struct string_list_item *result = strmap_get_item(map, str);
+	struct string_list_item *result = strmap_get_item(&map->map, str);
 	if (!result)
 		return default_value;
 	return (intptr_t)result->util;
 }
 
-static inline void strintmap_set(struct strmap *map, const char *str, intptr_t v)
+static inline void strintmap_set(struct strintmap *map, const char *str, intptr_t v)
 {
-	strmap_put(map, str, (void *)v);
+	strmap_put(&map->map, str, (void *)v);
 }
 
-void strintmap_incr(struct strmap *map, const char *str, intptr_t amt);
-
-static inline void strintmap_clear(struct strmap *map)
-{
-	strmap_clear(map, 0);
-}
-
-static inline void strintmap_free(struct strmap *map)
-{
-	strmap_free(map, 0);
-}
+void strintmap_incr(struct strintmap *map, const char *str, intptr_t amt);
 
 #endif /* STRMAP_H */
