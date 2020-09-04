@@ -3572,8 +3572,6 @@ static int do_merge(struct repository *r,
 		strbuf_release(&ref_name);
 		unlink(git_path_cherry_pick_head(r));
 		rollback_lock_file(&lock);
-
-		rollback_lock_file(&lock);
 		ret = run_command(&cmd);
 
 		/* force re-reading of the cache */
