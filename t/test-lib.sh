@@ -821,7 +821,7 @@ match_test_selector_list () {
 			*)
 				if expr "z$selector" : "z[0-9]*[^0-9]" >/dev/null
 				then
-					[[ "$title" =~ .*"$selector".* ]] && return
+					echo "$title" | grep -q "$selector" && return
 					continue
 				fi
 		esac
