@@ -1282,10 +1282,18 @@ test_expect_success '6a: Tricky rename/delete' '
 #   Commit O: z/{b,c}
 #   Commit A: y/{b,c}
 #   Commit B: y/{b,c}, z/d
-#   Expected: y/{b,c}, z/d
-#   Note: If we did directory rename detection here, we'd move z/d into y/,
-#         but B did that rename and still decided to put the file into z/,
-#         so we probably shouldn't apply directory rename detection for it.
+#   Expected: y/{b,c,d}
+#   Alternate: y/{b,c}, z/d
+#   Note: Directory rename detection says A renamed z/ -> y/, therefore the new
+#         file 'z/d' in B should be moved to 'y/d'.
+#
+#         We could potentially ignore the renames of z/{b,c} on side A since
+#         those were renamed on both sides.  However, it's a bit of a corner
+#         case because what if there was also a z/e that side A moved to x/e
+#         and side B left alone?  If we used the "ignore renames done on both
+#         sides" logic, then we'd compute that A renamed z/ -> x/, and move
+#         z/d to x/d.  That seems more surprising and uglier than allowing
+#         the z/ -> y/ rename.
 
 test_setup_6b () {
 	test_create_repo 6b &&
@@ -1335,7 +1343,7 @@ test_expect_success '6b: Same rename done on both sides' '
 		test_line_count = 1 out &&
 
 		git rev-parse >actual \
-			HEAD:y/b HEAD:y/c HEAD:z/d &&
+			HEAD:y/b HEAD:y/c HEAD:y/d &&
 		git rev-parse >expect \
 			O:z/b    O:z/c    B:z/d &&
 		test_cmp expect actual
@@ -1531,6 +1539,93 @@ test_expect_success '6e: Add/add from one side' '
 		test_cmp expect actual
 	)
 '
+
+# Testcase 6f, Same rename done on both sides
+#   (Related to testcase 6b)
+#   Commit O: z/{b,c,d,e}
+#   Commit A: y/{b,c,d}, x/e
+#   Commit B: y/{b,c,d}, z/{e,f}
+#   Expected: y/{b,c,d,f}, x/e
+#   Note: Directory rename detection says A renamed z/ -> y/ (3 paths renamed
+#         to y/ and only 1 renamed to x/), therefore the new file 'z/f' in B
+#         should be moved to 'y/f'.
+#
+#         This is a bit of an edge case where any behavior might surprise users,
+#         whether that is treating A as renaming z/ -> y/, treating A as renaming
+#         z/ -> x/, or treating A as not doing any directory rename.  However, I
+#         think this answer is the least confusing and most consistent with the
+#         rules elsewhere.
+#
+#         A note about z/ -> x/, since it may not be clear how that could come
+#         about: If we were to ignore files renamed by both sides
+#         (i.e. z/{b,c,d}), as directory rename detection did in git-2.18 thru
+#         at least git-2.28, then we would note there are no renames from z/ to
+#         y/ and one rename from z/ to x/ and thus come to the conclusion that
+#         A renamed z/ -> x/.  This seems more confusing for end users than a
+#         rename of z/ to y/, it makes directory rename detection behavior
+#         harder for them to predict.  As such, we modified the rule and changed
+#         the behavior on testcases 6b and 8e and introduced this 6f testcase.
+
+test_setup_6f () {
+	test_create_repo 6f &&
+	(
+		cd 6f &&
+
+		mkdir z &&
+		echo b >z/b &&
+		echo c >z/c &&
+		echo d >z/d &&
+		echo e >z/e &&
+		git add z &&
+		test_tick &&
+		git commit -m "O" &&
+
+		git branch O &&
+		git branch A &&
+		git branch B &&
+
+		git checkout A &&
+		git mv z y &&
+		mkdir x &&
+		git mv y/e x/e &&
+		test_tick &&
+		git commit -m "A" &&
+
+		git checkout B &&
+		git mv z y &&
+		mkdir z &&
+		git mv y/e z/e &&
+		echo f >z/f &&
+		git add z/f &&
+		test_tick &&
+		git commit -m "B"
+	)
+}
+
+test_expect_success '6f: Same renames done on both sides, plus another rename' '
+	test_setup_6f &&
+	(
+		cd 6f &&
+
+		git checkout A^0 &&
+
+		git -c merge.directoryRenames=true merge -s recursive B^0 &&
+
+		git ls-files -s >out &&
+		test_line_count = 5 out &&
+		git ls-files -u >out &&
+		test_line_count = 0 out &&
+		git ls-files -o >out &&
+		test_line_count = 1 out &&
+
+		git rev-parse >actual \
+			HEAD:y/b HEAD:y/c HEAD:y/d HEAD:x/e HEAD:y/f &&
+		git rev-parse >expect \
+			O:z/b    O:z/c    O:z/d    O:z/e    B:z/f &&
+		test_cmp expect actual
+	)
+'
+
 
 ###########################################################################
 # Rules suggested by section 6:
@@ -2269,14 +2364,22 @@ test_expect_success '8d: rename/delete...or not?' '
 # Notes: In commit A, directory z got renamed to y.  In commit B, directory z
 #        did NOT get renamed; the directory is still present; instead it is
 #        considered to have just renamed a subset of paths in directory z
-#        elsewhere.  However, this is much like testcase 6b (where commit B
-#        moves all the original paths out of z/ but opted to keep d
-#        within z/).  This makes it hard to judge where d should end up.
+#        elsewhere.  This is much like testcase 6b (where commit B moves all
+#        the original paths out of z/ but opted to keep d within z/).
 #
-#        It's possible that users would get confused about this, but what
-#        should we do instead?  It's not at all clear to me whether z/d or
-#        y/d or something else is a better resolution here, and other cases
-#        start getting really tricky, so I just picked one.
+#        It was not clear in the past what should be done with this testcase;
+#        in fact, I noted that I "just picked one" previously.  However,
+#        following the new logic for testcase 6b, we should take the rename
+#        and move z/d to y/d.
+#
+#        6b, 6f, and this case are definitely somewhat fuzzy in terms of whether
+#        they are optimal for end users, but (a) the default for directory
+#        rename detection is to mark these all as conflicts anyway, (b) it
+#        feels like this is less prone to higher order corner case confusion,
+#        and (c) the current algorithm requires less global knowledge
+#        (i.e. less coupling in the algorithm between renames done on both
+#        sides) which thus means users are better able to predict the
+#        behavior, and predict it without computing as many details.
 
 test_setup_8e () {
 	test_create_repo 8e &&
@@ -2328,7 +2431,7 @@ test_expect_success '8e: Both sides rename, one side adds to original directory'
 		test_line_count = 2 out &&
 
 		git rev-parse >actual \
-			:1:z/b :2:y/b :3:w/b :1:z/c :2:y/c :3:w/c :0:z/d &&
+			:1:z/b :2:y/b :3:w/b :1:z/c :2:y/c :3:w/c :0:y/d &&
 		git rev-parse >expect \
 			 O:z/b  O:z/b  O:z/b  O:z/c  O:z/c  O:z/c  B:z/d &&
 		test_cmp expect actual &&
