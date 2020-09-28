@@ -3996,7 +3996,7 @@ test_expect_failure '12b: Moving two directory hierarchies into each other' '
 #   Expected: Content merge conflicts for each of:
 #               node1/node2/node1/{leaf1, leaf2},
 #               node2/node1/node2/{leaf3, leaf4}
-#   NOTE: This is *exactly* like 12c, except that every path is modified on
+#   NOTE: This is *exactly* like 12b, except that every path is modified on
 #         each side of the merge.
 
 test_setup_12c () {
@@ -4033,7 +4033,7 @@ test_setup_12c () {
 	)
 }
 
-test_expect_success '12c: Moving one directory hierarchy into another w/ content merge' '
+test_expect_failure '12c: Moving one directory hierarchy into another w/ content merge' '
 	test_setup_12c &&
 	(
 		cd 12c &&
